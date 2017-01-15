@@ -1,6 +1,9 @@
 # IDE
 .idea
 
+# Spikes
+test/spikes.js
+
 # Logs
 logs
 *.log

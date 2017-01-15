@@ -18,6 +18,11 @@
   "homepage": "https://github.com/sveasmart/updater#readme",
   "devDependencies": {
     "chai": "^3.5.0",
-    "mocha": "^3.2.0"
+    "mocha": "^3.2.0",
+    "mock-fs": "^3.12.1",
+    "nock": "^9.0.2"
+  },
+  "dependencies": {
+    "request": "^2.79.0"
   }
 }

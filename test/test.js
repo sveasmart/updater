@@ -3,6 +3,6 @@ var assert = chai.assert
 
 describe('Updater', function() {
   it('Dumbass test to check if the framework works', function() {
-    assert.equal(1,2);
+    assert.equal(1,1);
   });
 });

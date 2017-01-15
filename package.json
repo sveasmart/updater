@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "main": "start.js",
   "scripts": {
-    "test": "test.js"
+    "test": "mocha test"
   },
   "repository": {
     "type": "git",
@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/sveasmart/updater#readme",
   "devDependencies": {
-    "chai": "^3.5.0"
+    "chai": "^3.5.0",
+    "mocha": "^3.2.0"
   }
 }

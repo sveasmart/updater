@@ -1,0 +1,22 @@
+{
+  "name": "updater",
+  "description": "Device Updater is a piece of software that allows you remotely administer and update devices, even those that are behind super-restrictive firewalls.",
+  "version": "1.0.0",
+  "main": "start.js",
+  "scripts": {
+    "test": "test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sveasmart/updater.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/sveasmart/updater/issues"
+  },
+  "homepage": "https://github.com/sveasmart/updater#readme",
+  "devDependencies": {
+    "chai": "^3.5.0"
+  }
+}

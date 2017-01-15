@@ -8,6 +8,9 @@ const nock = require('nock') //Mocks all http requests
 
 const updater = require("../src/updater.js")
 
+//An in-memory integration test that checks if the updater works, end-to-end.
+//Both the file system and http requests are mocked, so everything happens in-memory.
+//So no real IO happens.
 describe('Updater', function() {
 
   before(function() {

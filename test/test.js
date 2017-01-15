@@ -6,6 +6,7 @@ const mockFileSystem = require('mock-fs');
 const nock = require('nock'); //http request mocking framework
 const request = require('request')
 
+
 describe('Updater', function() {
   before(function() {
     //Create a fake in-memory file system
@@ -23,10 +24,21 @@ describe('Updater', function() {
     assert.isNotOk(fs.existsSync("home"))
   })
 
+  it('If updaterUrl is invalid, update should fail', function(done) {
+    updater.update("/home", 'http://invalid.url', function(err) {
+      if (err) {
+        done() //Good! The update SHOULD fail!
+      } else {
+        done(new Error("Hey, the update should have failed!"))
+      }
+    })
+
+  })
+
   it('If no update was needed, then nothing should change', function(done) {
     nock('http://fakeupdater.com')
       .get("/updateme")
-      .reply(200, {hello: "World"})
+      .reply(200, {status: "noUpdateNeeded"})
 
     //Updater connects to the server and says "Hi, I'm deviceA, and I have snapshot #0."
     //Server responds "OK" (= nothing to install)
@@ -38,4 +50,6 @@ describe('Updater', function() {
       done()
     })
   })
+
+
 })

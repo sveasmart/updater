@@ -1,6 +1,6 @@
-const request = require("request")
+const request = require('request')
 const fs = require("fs")
-const path = require('path');
+const path = require('path')
 
 //Calls the given updateUrl and checks if an update is needed.
 //Uses the given rootDir to fetch the device-id,

@@ -28,7 +28,7 @@ describe('Updater', function() {
     //Cleanup. Disable the mocks
     mockFileSystem.restore()
     assert.isNotOk(fs.existsSync("home"))
-    nock.cleanAll();
+    nock.cleanAll()
   })
 
   it('If updaterUrl is invalid, update should fail', function(done) {

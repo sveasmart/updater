@@ -1,6 +1,9 @@
 const request = require('request')
 const fs = require("fs")
 const path = require('path')
+const child_process = require('child_process')
+const extract = require('extract-zip')
+
 
 //Calls the given updateUrl and checks if an update is needed.
 //Uses the given rootDir to fetch the device-id,
@@ -56,8 +59,36 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, callback) {
   //Create/update the device-id file
   const snapshotIdFile = path.join(rootDir, "snapshot-id")
   fs.writeFileSync(snapshotIdFile, snapshotId)
-  callback()
+
+  fs.mkdirSync('/home/downloads/')
+  const snapshotRoot = '/home/downloads/' + snapshotId
+  fs.mkdirSync(snapshotRoot)
+  const downloadedFile = snapshotRoot + '/download.zip'
+
+  //Download the file
+  const zipFilePipe = request({uri: downloadUrl}).pipe(fs.createWriteStream(downloadedFile))
+  zipFilePipe.on('close', function() {
+    //OK now I got my ZIP file. Let's unzip it.
+    extract(downloadedFile, {dir: snapshotRoot}, function (err) {
+      if (err) return callback(err)
+
+      console.log("unzipped!")
+      const updateScript = snapshotRoot + "/update.sh"
+      console.log("Checking for " + updateScript)
+
+      if (fs.existsSync(updateScript)) {
+        child_process.execFileSync(updateScript)
+        //TODO catch error?
+        callback()
+      } else {
+        callback(new Error("The zip file didn't contain update.sh!"))
+      }
+    })
+
+  })
+
 }
+
 
 exports.update = update
 

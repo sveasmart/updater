@@ -12,17 +12,6 @@ const Archiver = require('archiver'); //Creates ZIP files
 
 var updater = null
 
-function list(text) {
-  console.log("")
-  console.log("========= files " + text + " ============")
-  var files = fs.readdirSync("/")
-  files.forEach(file => {
-    console.log(file);
-  });
-  console.log("------------------")
-}
-
-
 //An in-memory integration test that checks if the updater works, end-to-end.
 //Both the file system and http requests are mocked, so everything happens in-memory.
 //So no real IO happens.
@@ -30,37 +19,25 @@ describe('Updater', function() {
 
   //=================================================================================
   beforeEach(function() {
-    console.log("")
-    console.log("")
-    console.log("###############################################################")
-    this.mockFileSystem = require('mock-fs') //Mocks all filesystem access using a fake in-memory fileystem
     //Create a fake in-memory file system
-
-
-    list("before calling mockFileSystem()")
-
-    console.log("About to call this.mockFileSystem(...)")
+    this.mockFileSystem = require('mock-fs') //Mocks all filesystem access using a fake in-memory fileystem
     this.mockFileSystem({
-      '/updatertest': {
+      '/updatertest': { //Note - this call fails if a REAL folder with this name exists in the filesystem.
         'device-id': 'deviceA'
       }
     })
-    console.log("...Done!")
-    list("after calling mockFileSystem()")
     assert.isOk(fs.existsSync("/updatertest"))
     assert.isOk(fs.existsSync("/updatertest/device-id"))
     updater = setup.getUpdater()
   })
 
   afterEach(function() {
-    console.log("About to clean up")
     //Cleanup. Disable the mocks
     this.mockFileSystem.restore()
     assert.isNotOk(fs.existsSync("updatertest"))
     nock.cleanAll()
     updater = null
     this.mockFileSystem = null
-    console.log("...Done cleaning up!")
   })
 
   //================================================================================

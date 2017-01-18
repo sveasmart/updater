@@ -1,41 +1,24 @@
 const chai = require('chai')
 const assert = chai.assert
+const mocha = require("mocha")
+const it = mocha.it;
+const describe = mocha.describe;
 
 const fs = require('fs') //File system interaction
+const setup = require('./setup.js') //Contains low-level test setup stuff
 
 const mockFileSystem = require('mock-fs') //Mocks all filesystem access using a fake in-memory fileystem
 const nock = require('nock') //Mocks all http requests
-const Archiver = require('archiver');
+const Archiver = require('archiver'); //Creates ZIP files
 
-
-//Prepare a mock for execFileSync
-const mockery = require('mockery')
-mockery.registerMock('child_process')
-const childProcessMock = {
-  execFileSync: function(path) {
-    console.log("Pretending to execute " + path)
-    this.lastExecutedFile = path
-  },
-
-  wasExecuted: function(path) {
-    return this.lastExecutedFile === path
-  }
-}
-mockery.registerMock('child_process', childProcessMock)
-
-//Load the updater.js module with the mock enabled
-mockery.enable({
-  warnOnReplace: false,
-  warnOnUnregistered: false
-});
-const updater = require("../src/updater.js")
-mockery.disable()
+var updater = null
 
 //An in-memory integration test that checks if the updater works, end-to-end.
 //Both the file system and http requests are mocked, so everything happens in-memory.
 //So no real IO happens.
 describe('Updater', function() {
 
+  //=================================================================================
   before(function() {
     //Create a fake in-memory file system
     mockFileSystem({
@@ -45,6 +28,7 @@ describe('Updater', function() {
     })
     assert.isOk(fs.existsSync("/home"))
     assert.isOk(fs.existsSync("/home/device-id"))
+    updater = setup.getUpdater()
   })
 
   after(function() {
@@ -52,8 +36,10 @@ describe('Updater', function() {
     mockFileSystem.restore()
     assert.isNotOk(fs.existsSync("home"))
     nock.cleanAll()
+    updater = null
   })
 
+  //================================================================================
   it('If updaterUrl is invalid, update should fail', function(done) {
 
     //Prepare the http mock
@@ -69,6 +55,7 @@ describe('Updater', function() {
     })
   })
 
+  //================================================================================
   it('If no update was needed, then nothing should change', function(done) {
 
     //Prepare the http mock so it says no update is needed
@@ -90,7 +77,8 @@ describe('Updater', function() {
       done()
     })
   })
-  
+
+  //================================================================================
   it('If update was needed, it should be downloaded and the snapshot-id file should be updated', function(done) {
     //Prepare the http mock so it says an update is needed
     nock('http://fakeupdater.com')
@@ -101,18 +89,17 @@ describe('Updater', function() {
       .reply(200, {
         'status': 'updateNeeded',
         'snapshotId': '1',
-        'downloadUrl': 'http://zlong.com/myUpdaterScript.zip'
+        'downloadUrl': 'http://download.fakeupdater.com/myUpdateScript.zip'
       })
 
-    var zip = Archiver('zip');
-    zip.append('Hello',  { name: 'update.sh' }).finalize()
+    var zipFile = Archiver('zip');
+    zipFile.append('Hello',  { name: 'update.sh' }).finalize()
 
     //Prepare the http mock so a file download is available
-    nock('http://zlong.com')
-      .get("/myUpdaterScript.zip")
+    nock('http://download.fakeupdater.com')
+      .get("/myUpdateScript.zip")
       .reply(200, function(uri, requestBody) {
-        console.log("YEEEEAH")
-        return zip
+        return zipFile
       })
 
 
@@ -130,7 +117,7 @@ describe('Updater', function() {
       assert.isOk(fs.existsSync("/home/downloads/1/update.sh"))
 
       //Ensure that update.sh was executed
-      assert.isOk(childProcessMock.wasExecuted("/home/downloads/1/update.sh"))
+      assert.equal(updater.lastExecutedFile, "/home/downloads/1/update.sh")
 
       done()
     })

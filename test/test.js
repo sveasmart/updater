@@ -112,4 +112,21 @@ describe('Updater', function() {
       done()
     })
   })
+
+  //================================================================================
+  it('If the update script fails, my snapshot-id file should NOT be updated.', function(done) {
+    testFixture.setSnapshotId("0")
+    assert.equal(testFixture.getSnapshotId(), "0")
+    testFixture.shouldNextUpdateScriptSucceed = false
+
+    updater.update("/updatertest", 'http://fakeupdater.com', function(err) {
+      if (err) return done(err)
+
+      //Ensure that snapshot-id is unchanged
+      assert.equal(testFixture.getSnapshotId(), "0")
+
+      done()
+    })
+  })
+
 })

@@ -105,8 +105,13 @@ function setSnapshotId(snapshotId) {
   fs.writeFileSync("/updatertest/snapshot-id", snapshotId)
 }
 
+function getSnapshotId() {
+  return fs.readFileSync("/updatertest/snapshot-id").toString()
+}
+
 exports.setDeviceId = setDeviceId
 exports.setSnapshotId = setSnapshotId
 exports.initFixture = initFixture
 exports.getLastLog = getLastLog
 exports.shouldNextUpdateScriptSucceed = shouldNextUpdateScriptSucceed
+exports.getSnapshotId = getSnapshotId

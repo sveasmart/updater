@@ -4,7 +4,6 @@ const path = require('path')
 const child_process = require('child_process')
 const extract = require('extract-zip')
 
-
 //Calls the given updateUrl and checks if an update is needed.
 //Uses the given rootDir to fetch the device-id,
 //update the snapshot-id, and store and execute the update itself.
@@ -17,7 +16,7 @@ function update(rootDir, updateUrl, callback) {
   const snapshotIdFile = path.join(rootDir, "snapshot-id")
   var snapshotId = 0
   if (fs.existsSync(snapshotIdFile)) {
-    snapshotId = fs.readFileSync(deviceIdFile)
+    snapshotId = fs.readFileSync(snapshotIdFile)
   }   
 
   //Configure the HTTP request

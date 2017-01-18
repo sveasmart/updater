@@ -1,16 +1,15 @@
 const chai = require('chai')
 const assert = chai.assert
 const mocha = require("mocha")
-const it = mocha.it;
-const describe = mocha.describe;
 
 const fs = require('fs') //File system interaction
 const setup = require('./setup.js') //Contains low-level test setup stuff
-
-const nock = require('nock') //Mocks all http requests
-const Archiver = require('archiver'); //Creates ZIP files
+const nock = require('nock')
 
 var updater = null
+
+const testUtil = require('./test-util')
+const testFixture = require('./test-fixture')
 
 //An in-memory integration test that checks if the updater works, end-to-end.
 //Both the file system and http requests are mocked, so everything happens in-memory.
@@ -19,32 +18,13 @@ describe('Updater', function() {
 
   //=================================================================================
   beforeEach(function() {
-    //Create a fake in-memory file system
-    this.mockFileSystem = require('mock-fs') //Mocks all filesystem access using a fake in-memory fileystem
-    this.mockFileSystem({
-      '/updatertest': { //Note - this call fails if a REAL folder with this name exists in the filesystem.
-        'device-id': 'deviceA'
-      }
-    })
-    assert.isOk(fs.existsSync("/updatertest"))
-    assert.isOk(fs.existsSync("/updatertest/device-id"))
+    testUtil.initMocks()
+    testFixture.initFixture()
     updater = setup.getUpdater()
-  })
-
-  afterEach(function() {
-    //Cleanup. Disable the mocks
-    this.mockFileSystem.restore()
-    assert.isNotOk(fs.existsSync("updatertest"))
-    nock.cleanAll()
-    updater = null
-    this.mockFileSystem = null
   })
 
   //================================================================================
   it('If updaterUrl is invalid, update should fail', function(done) {
-
-    //Prepare the http mock
-    nock('http://only.this.url.works')
 
     //Call the updated with a non-existent URL
     updater.update("/updatertest", 'http://totally.invalid.url', function(err) {
@@ -58,55 +38,22 @@ describe('Updater', function() {
 
   //================================================================================
   it('If no update was needed, then nothing should change', function(done) {
-
-    //Prepare the http mock so it says no update is needed
-    nock('http://fakeupdater.com')
-      .get("/updateme")
-      .query({
-        'deviceId': 'deviceA',
-        'snapshotId': '0'
-      })
-      .reply(200, {
-        'status': 'noUpdateNeeded'
-      })
+    testFixture.setDeviceId("deviceA")
+    testFixture.setSnapshotId("1")
 
     //Call the updater
     updater.update("/updatertest", 'http://fakeupdater.com/updateme', function(err) {
       if (err) return done(err)
 
-      //Check that no snapshot-id has been created
-      assert.isNotOk(fs.existsSync("updatertest/snapshot-id"))
+      //Check that no update was exected
+      assert.isNotOk(updater.lastExecutedFile)
       done()
     })
   })
 
   //================================================================================
   it('If update was needed, it should be downloaded and executed.', function(done) {
-    //Create a ZIP file with a fake update script
-    var zipFile = Archiver('zip');
-    zipFile.append('Hello',  { name: 'update.sh' }).finalize()
 
-    //Make the ZIP file available for download
-    nock('http://download.fakeupdater.com')
-      .get("/myUpdateScript.zip")
-      .reply(200, function(uri, requestBody) {
-        return zipFile
-      })
-
-    //Prepare the http mock so it says an update is needed
-    nock('http://fakeupdater.com')
-      .get("/updateme")
-      .query({
-        'deviceId': 'deviceA',
-        'snapshotId': '0'
-      })
-      .reply(200, {
-        'status': 'updateNeeded',
-        'snapshotId': '1',
-        'downloadUrl': 'http://download.fakeupdater.com/myUpdateScript.zip'
-      })
-
-    //Call the updater
     updater.update("/updatertest", 'http://fakeupdater.com/updateme', function(err) {
       if (err) return done(err)
 
@@ -125,5 +72,24 @@ describe('Updater', function() {
       done()
     })
   })
+
+  //================================================================================
+  it.skip('The update script output should be posted to the hub', function(done) {
+
+    updater.update("/updatertest", 'http://fakeupdater.com/updateme', function(err) {
+      if (err) return done(err)
+
+      //Ensure that update.sh was executed
+      assert.equal(updater.lastExecutedFile, "/updatertest/downloads/1/update.sh")
+
+      //Ensure that the result was posted to the hub
+      const lastLog = testFixture.getLastLog("deviceA")
+      assert.isOk(lastLog)
+      assert.equal(lastLog.success, true)
+      assert.equal(lastLog.output, "it worked!")
+
+      done()
+    })
+  })  
 
 })

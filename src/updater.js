@@ -53,7 +53,7 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, callback) {
         //OK update has been executed. Let's see how it worked out.
         if (err) {
           //oh, it failed!
-          tellHubHowItWorkedOut(hubUrl, deviceId, snapshotId, false, err, callback)
+          tellHubHowItWorkedOut(hubUrl, deviceId, snapshotId, false, err.message, callback)
         } else {
           tellHubHowItWorkedOut(hubUrl, deviceId, snapshotId, true, scriptOutput, callback)
         }
@@ -108,10 +108,14 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, callback) {
       const updateScript = snapshotRoot + "/update.sh"
 
       if (fs.existsSync(updateScript)) {
-        const outputBuffer = child_process.execFileSync(updateScript)
+        try {
+          const outputBuffer = child_process.execFileSync(updateScript)
+          callback(null, outputBuffer.toString())
 
-        //TODO catch error?
-        callback(null, outputBuffer.toString())
+        } catch (err) {
+          callback(err)
+        }
+
       } else {
         callback(new Error("The zip file didn't contain update.sh!"))
       }

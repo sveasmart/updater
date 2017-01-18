@@ -37,7 +37,7 @@ describe('Updater', function() {
   })
 
   //================================================================================
-  it('If no update was needed, then nothing should change', function(done) {
+  it('If no update was needed, then nothing should happen', function(done) {
     testFixture.setDeviceId("deviceA")
     testFixture.setSnapshotId("1")
 
@@ -90,6 +90,26 @@ describe('Updater', function() {
 
       done()
     })
-  })  
+  })
 
+  //================================================================================
+  it('The update script output should be posted to the hub, even if the script fails.', function(done) {
+
+    testFixture.shouldNextUpdateScriptSucceed = false
+    
+    updater.update("/updatertest", 'http://fakeupdater.com', function(err) {
+      if (err) return done(err)
+
+      //Ensure that update.sh was executed
+      assert.equal(updater.lastExecutedFile, "/updatertest/downloads/1/update.sh")
+
+      //Ensure that the result was posted to the hub
+      const lastLog = testFixture.getLastLog("deviceA")
+      assert.isOk(lastLog)
+      assert.equal(lastLog.success, false)
+      assert.equal(lastLog.output, "update failed!")
+
+      done()
+    })
+  })
 })

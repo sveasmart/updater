@@ -25,6 +25,7 @@ var shouldNextUpdateScriptSucceed = true
 
 function initDevice(device) {
   publishZipFile(getZipFileName(device), device.doesUpdateFileWork)
+  device.lastLog = null
 }
 
 function getZipFileName(device) {
@@ -55,6 +56,9 @@ function getDevice(deviceId) {
 }
 
 function initFixture() {
+  shouldNextUpdateScriptSucceed = true
+
+
   devices.forEach(function(device){
     initDevice(device)
   });

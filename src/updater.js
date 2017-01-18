@@ -72,9 +72,7 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, callback) {
     extract(downloadedFile, {dir: snapshotRoot}, function (err) {
       if (err) return callback(err)
 
-      console.log("unzipped!")
       const updateScript = snapshotRoot + "/update.sh"
-      console.log("Checking for " + updateScript)
 
       if (fs.existsSync(updateScript)) {
         child_process.execFileSync(updateScript)

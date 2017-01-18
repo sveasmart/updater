@@ -2,34 +2,16 @@ const chai = require('chai')
 const assert = chai.assert
 
 const fs = require('fs') //File system interaction
+const setup = require('./setup.js')
 
 const mockFileSystem = require('mock-fs') //Mocks all filesystem access using a fake in-memory fileystem
 const nock = require('nock') //Mocks all http requests
 const Archiver = require('archiver');
 
+var it = require("mocha").it;
+var describe = require("mocha").describe;
 
-//Prepare a mock for execFileSync
-const mockery = require('mockery')
-mockery.registerMock('child_process')
-const childProcessMock = {
-  execFileSync: function(path) {
-    console.log("Pretending to execute " + path)
-    this.lastExecutedFile = path
-  },
-
-  wasExecuted: function(path) {
-    return this.lastExecutedFile === path
-  }
-}
-mockery.registerMock('child_process', childProcessMock)
-
-//Load the updater.js module with the mock enabled
-mockery.enable({
-  warnOnReplace: false,
-  warnOnUnregistered: false
-});
-const updater = require("../src/updater.js")
-mockery.disable()
+const updater = setup.getUpdater()
 
 //An in-memory integration test that checks if the updater works, end-to-end.
 //Both the file system and http requests are mocked, so everything happens in-memory.
@@ -101,18 +83,17 @@ describe('Updater', function() {
       .reply(200, {
         'status': 'updateNeeded',
         'snapshotId': '1',
-        'downloadUrl': 'http://zlong.com/myUpdaterScript.zip'
+        'downloadUrl': 'http://download.fakeupdater.com/myUpdateScript.zip'
       })
 
-    var zip = Archiver('zip');
-    zip.append('Hello',  { name: 'update.sh' }).finalize()
+    var zipFile = Archiver('zip');
+    zipFile.append('Hello',  { name: 'update.sh' }).finalize()
 
     //Prepare the http mock so a file download is available
-    nock('http://zlong.com')
-      .get("/myUpdaterScript.zip")
+    nock('http://download.fakeupdater.com')
+      .get("/myUpdateScript.zip")
       .reply(200, function(uri, requestBody) {
-        console.log("YEEEEAH")
-        return zip
+        return zipFile
       })
 
 
@@ -130,7 +111,7 @@ describe('Updater', function() {
       assert.isOk(fs.existsSync("/home/downloads/1/update.sh"))
 
       //Ensure that update.sh was executed
-      assert.isOk(childProcessMock.wasExecuted("/home/downloads/1/update.sh"))
+      assert.equal(updater.lastExecutedFile, "/home/downloads/1/update.sh")
 
       done()
     })

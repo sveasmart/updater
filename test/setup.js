@@ -1,7 +1,7 @@
 //Contains all the icky test setup stuff,
 //so that test.js can focus on the business logic
 
-
+const testFixture = require("./test-fixture")
 
 // getUpdater() returns an updater with mocked child_process.
 // When the updater tries to run a script (via child_process.execFileSync,
@@ -16,6 +16,11 @@ function getUpdater() {
   const childProcessMock = {
     execFileSync: function(path) {
       updater.lastExecutedFile = path
+      if (testFixture.shouldNextUpdateScriptSucceed) {
+        return "update successful!"
+      } else {
+        throw new Error("update failed!")
+      }
     }
   }
 

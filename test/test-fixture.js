@@ -5,19 +5,23 @@ const Archiver = require('archiver'); //Creates ZIP files
 const url = require('url');
 const querystring = require('querystring');
 
+//This represents the Hub's view of the world
 const devices = [
   {
     deviceId: "deviceA",
-    latestSnapshotId: "1",
-    doesUpdateFileWork: true
+    latestSnapshotId: "1"
   },
 
   {
     deviceId: "deviceB",
-    latestSnapshotId: "2",
-    doesUpdateFileWork: false
+    latestSnapshotId: "2"
   }
 ]
+
+//This variable is used to control if the next
+//update.sh script execution will pretend to succeed
+//or pretend to fail.
+var shouldNextUpdateScriptSucceed = true
 
 function initDevice(device) {
   publishZipFile(getZipFileName(device), device.doesUpdateFileWork)
@@ -46,7 +50,7 @@ function getDevice(deviceId) {
   for (device of devices) {
     if (device.deviceId == deviceId) {
       return device
-    }
+    } 
   }
 }
 
@@ -77,9 +81,7 @@ function initFixture() {
   nock('http://fakeupdater.com')
     .post("/howitworkedout")
     .reply(200, function(uri, requestBody) {
-      const query = url.parse(uri, true).query
-      console.log("howitworkedout body", requestBody)
-      const device = getDevice(query.deviceId)
+      const device = getDevice(requestBody.deviceId)
       device.lastLog = requestBody
       return {
         status: 'ok'
@@ -103,3 +105,4 @@ exports.setDeviceId = setDeviceId
 exports.setSnapshotId = setSnapshotId
 exports.initFixture = initFixture
 exports.getLastLog = getLastLog
+exports.shouldNextUpdateScriptSucceed = shouldNextUpdateScriptSucceed

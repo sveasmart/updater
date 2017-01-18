@@ -42,7 +42,7 @@ describe('Updater', function() {
     testFixture.setSnapshotId("1")
 
     //Call the updater
-    updater.update("/updatertest", 'http://fakeupdater.com/updateme', function(err) {
+    updater.update("/updatertest", 'http://fakeupdater.com', function(err) {
       if (err) return done(err)
 
       //Check that no update was exected
@@ -54,7 +54,7 @@ describe('Updater', function() {
   //================================================================================
   it('If update was needed, it should be downloaded and executed.', function(done) {
 
-    updater.update("/updatertest", 'http://fakeupdater.com/updateme', function(err) {
+    updater.update("/updatertest", 'http://fakeupdater.com', function(err) {
       if (err) return done(err)
 
       //Ensure that it created a snapshot-id file
@@ -74,9 +74,9 @@ describe('Updater', function() {
   })
 
   //================================================================================
-  it.skip('The update script output should be posted to the hub', function(done) {
+  it('The update script output should be posted to the hub', function(done) {
 
-    updater.update("/updatertest", 'http://fakeupdater.com/updateme', function(err) {
+    updater.update("/updatertest", 'http://fakeupdater.com', function(err) {
       if (err) return done(err)
 
       //Ensure that update.sh was executed
@@ -86,7 +86,7 @@ describe('Updater', function() {
       const lastLog = testFixture.getLastLog("deviceA")
       assert.isOk(lastLog)
       assert.equal(lastLog.success, true)
-      assert.equal(lastLog.output, "it worked!")
+      assert.equal(lastLog.output, "update successful!")
 
       done()
     })

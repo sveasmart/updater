@@ -38,16 +38,17 @@ describe('Updater', function() {
 
 
     list("before calling mockFileSystem()")
+
     console.log("About to call this.mockFileSystem(...)")
     this.mockFileSystem({
-      '/home': {
+      '/updatertest': {
         'device-id': 'deviceA'
       }
     })
     console.log("...Done!")
     list("after calling mockFileSystem()")
-    assert.isOk(fs.existsSync("/home"))
-    assert.isOk(fs.existsSync("/home/device-id"))
+    assert.isOk(fs.existsSync("/updatertest"))
+    assert.isOk(fs.existsSync("/updatertest/device-id"))
     updater = setup.getUpdater()
   })
 
@@ -55,7 +56,7 @@ describe('Updater', function() {
     console.log("About to clean up")
     //Cleanup. Disable the mocks
     this.mockFileSystem.restore()
-    assert.isNotOk(fs.existsSync("home"))
+    assert.isNotOk(fs.existsSync("updatertest"))
     nock.cleanAll()
     updater = null
     this.mockFileSystem = null
@@ -69,7 +70,7 @@ describe('Updater', function() {
     nock('http://only.this.url.works')
 
     //Call the updated with a non-existent URL
-    updater.update("/home", 'http://totally.invalid.url', function(err) {
+    updater.update("/updatertest", 'http://totally.invalid.url', function(err) {
       if (err) {
         done() //Good! The update SHOULD fail!
       } else {
@@ -93,11 +94,11 @@ describe('Updater', function() {
       })
 
     //Call the updater
-    updater.update("/home", 'http://fakeupdater.com/updateme', function(err) {
+    updater.update("/updatertest", 'http://fakeupdater.com/updateme', function(err) {
       if (err) return done(err)
 
       //Check that no snapshot-id has been created
-      assert.isNotOk(fs.existsSync("home/snapshot-id"))
+      assert.isNotOk(fs.existsSync("updatertest/snapshot-id"))
       done()
     })
   })
@@ -129,20 +130,20 @@ describe('Updater', function() {
       })
 
     //Call the updater
-    updater.update("/home", 'http://fakeupdater.com/updateme', function(err) {
+    updater.update("/updatertest", 'http://fakeupdater.com/updateme', function(err) {
       if (err) return done(err)
 
       //Ensure that it created a snapshot-id file
-      assert.isOk(fs.existsSync("/home/snapshot-id"))
-      const snapshotId = fs.readFileSync("/home/snapshot-id")
+      assert.isOk(fs.existsSync("/updatertest/snapshot-id"))
+      const snapshotId = fs.readFileSync("/updatertest/snapshot-id")
       assert.equal(snapshotId, '1')
 
-      //Ensure that the file was downloaded to /home/downloads
-      assert.isOk(fs.existsSync("/home/downloads/1/download.zip"))
-      assert.isOk(fs.existsSync("/home/downloads/1/update.sh"))
+      //Ensure that the file was downloaded to /updatertest/downloads
+      assert.isOk(fs.existsSync("/updatertest/downloads/1/download.zip"))
+      assert.isOk(fs.existsSync("/updatertest/downloads/1/update.sh"))
 
       //Ensure that update.sh was executed
-      assert.equal(updater.lastExecutedFile, "/home/downloads/1/update.sh")
+      assert.equal(updater.lastExecutedFile, "/updatertest/downloads/1/update.sh")
 
       done()
     })

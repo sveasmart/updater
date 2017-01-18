@@ -68,8 +68,8 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, callback) {
   const snapshotIdFile = path.join(rootDir, "snapshot-id")
   fs.writeFileSync(snapshotIdFile, snapshotId)
 
-  fs.mkdirSync('/home/downloads/')
-  const snapshotRoot = '/home/downloads/' + snapshotId
+  fs.mkdirSync(path.join(rootDir, 'downloads'))
+  const snapshotRoot = path.join(rootDir, 'downloads', snapshotId)
   fs.mkdirSync(snapshotRoot)
   const downloadedFile = snapshotRoot + '/download.zip'
 

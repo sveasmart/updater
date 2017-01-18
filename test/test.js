@@ -21,23 +21,27 @@ describe('Updater', function() {
   before(function() {
     this.mockFileSystem = require('mock-fs') //Mocks all filesystem access using a fake in-memory fileystem
     //Create a fake in-memory file system
+    console.log("About to call this.mockFileSystem(...)")
     this.mockFileSystem({
       '/home': {
         'device-id': 'deviceA'
       }
     })
+    console.log("...Done!")
     assert.isOk(fs.existsSync("/home"))
     assert.isOk(fs.existsSync("/home/device-id"))
     updater = setup.getUpdater()
   })
 
   after(function() {
+    console.log("About to clean up")
     //Cleanup. Disable the mocks
     this.mockFileSystem.restore()
     assert.isNotOk(fs.existsSync("home"))
     nock.cleanAll()
     updater = null
     this.mockFileSystem = null
+    console.log("...Done cleaning up!")
   })
 
   //================================================================================

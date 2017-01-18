@@ -7,7 +7,6 @@ const describe = mocha.describe;
 const fs = require('fs') //File system interaction
 const setup = require('./setup.js') //Contains low-level test setup stuff
 
-const mockFileSystem = require('mock-fs') //Mocks all filesystem access using a fake in-memory fileystem
 const nock = require('nock') //Mocks all http requests
 const Archiver = require('archiver'); //Creates ZIP files
 
@@ -20,8 +19,9 @@ describe('Updater', function() {
 
   //=================================================================================
   before(function() {
+    this.mockFileSystem = require('mock-fs') //Mocks all filesystem access using a fake in-memory fileystem
     //Create a fake in-memory file system
-    mockFileSystem({
+    this.mockFileSystem({
       '/home': {
         'device-id': 'deviceA'
       }
@@ -33,10 +33,11 @@ describe('Updater', function() {
 
   after(function() {
     //Cleanup. Disable the mocks
-    mockFileSystem.restore()
+    this.mockFileSystem.restore()
     assert.isNotOk(fs.existsSync("home"))
     nock.cleanAll()
     updater = null
+    this.mockFileSystem = null
   })
 
   //================================================================================
@@ -62,7 +63,8 @@ describe('Updater', function() {
     nock('http://fakeupdater.com')
       .get("/updateme")
       .query({
-        'deviceId': 'deviceA'
+        'deviceId': 'deviceA',
+        'snapshotId': '0'
       })
       .reply(200, {
         'status': 'noUpdateNeeded'
@@ -79,29 +81,30 @@ describe('Updater', function() {
   })
 
   //================================================================================
-  it('If update was needed, it should be downloaded and the snapshot-id file should be updated', function(done) {
-    //Prepare the http mock so it says an update is needed
-    nock('http://fakeupdater.com')
-      .get("/updateme")
-      .query({
-        'deviceId': 'deviceA'
-      })
-      .reply(200, {
-        'status': 'updateNeeded',
-        'snapshotId': '1',
-        'downloadUrl': 'http://download.fakeupdater.com/myUpdateScript.zip'
-      })
-
+  it('If update was needed, it should be downloaded and executed.', function(done) {
+    //Create a ZIP file with a fake update script
     var zipFile = Archiver('zip');
     zipFile.append('Hello',  { name: 'update.sh' }).finalize()
 
-    //Prepare the http mock so a file download is available
+    //Make the ZIP file available for download
     nock('http://download.fakeupdater.com')
       .get("/myUpdateScript.zip")
       .reply(200, function(uri, requestBody) {
         return zipFile
       })
 
+    //Prepare the http mock so it says an update is needed
+    nock('http://fakeupdater.com')
+      .get("/updateme")
+      .query({
+        'deviceId': 'deviceA',
+        'snapshotId': '0'
+      })
+      .reply(200, {
+        'status': 'updateNeeded',
+        'snapshotId': '1',
+        'downloadUrl': 'http://download.fakeupdater.com/myUpdateScript.zip'
+      })
 
     //Call the updater
     updater.update("/home", 'http://fakeupdater.com/updateme', function(err) {

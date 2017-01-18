@@ -13,13 +13,21 @@ function update(rootDir, updateUrl, callback) {
   const deviceIdFile = path.join(rootDir, "device-id")
   const deviceId = fs.readFileSync(deviceIdFile)
 
+  //Read the snapshotId from file, or use 0 if not found.
+  const snapshotIdFile = path.join(rootDir, "snapshot-id")
+  var snapshotId = 0
+  if (fs.existsSync(snapshotIdFile)) {
+    snapshotId = fs.readFileSync(deviceIdFile)
+  }   
+
   //Configure the HTTP request
   const options = {
     uri: updateUrl,
     json: true,
     method: 'GET',
     qs: {
-      'deviceId': deviceId
+      'deviceId': deviceId,
+      'snapshotId': snapshotId
     }
   }
 

@@ -27,7 +27,7 @@ describe('Updater', function() {
   it('If updaterUrl is invalid, update should fail', function(done) {
 
     //Call the updated with a non-existent URL
-    updater.update("/updatertest", 'http://totally.invalid.url', function(err) {
+    updater.checkForUpdate("/updatertest", 'http://totally.invalid.url', function(err) {
       if (err) {
         done() //Good! The update SHOULD fail!
       } else {
@@ -42,7 +42,7 @@ describe('Updater', function() {
     testFixture.setSnapshotId("1")
 
     //Call the updater
-    updater.update("/updatertest", 'http://fakeupdater.com', function(err) {
+    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', function(err) {
       if (err) return done(err)
 
       //Check that no update was exected
@@ -54,7 +54,7 @@ describe('Updater', function() {
   //================================================================================
   it('If update was needed, it should be downloaded and executed.', function(done) {
 
-    updater.update("/updatertest", 'http://fakeupdater.com', function(err) {
+    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', function(err) {
       if (err) return done(err)
 
       //Ensure that it created a snapshot-id file
@@ -76,7 +76,7 @@ describe('Updater', function() {
   //================================================================================
   it('The update script output should be posted to the hub', function(done) {
 
-    updater.update("/updatertest", 'http://fakeupdater.com', function(err) {
+    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', function(err) {
       if (err) return done(err)
 
       //Ensure that update.sh was executed
@@ -97,7 +97,7 @@ describe('Updater', function() {
 
     testFixture.shouldNextUpdateScriptSucceed = false
     
-    updater.update("/updatertest", 'http://fakeupdater.com', function(err) {
+    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', function(err) {
       if (err) return done(err)
 
       //Ensure that update.sh was executed
@@ -119,7 +119,7 @@ describe('Updater', function() {
     assert.equal(testFixture.getSnapshotId(), "0")
     testFixture.shouldNextUpdateScriptSucceed = false
 
-    updater.update("/updatertest", 'http://fakeupdater.com', function(err) {
+    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', function(err) {
       if (err) return done(err)
 
       //Ensure that snapshot-id is unchanged

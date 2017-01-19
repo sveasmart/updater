@@ -1,0 +1,4 @@
+rootDir: ./updaterroot
+hubUrl: http://localhost:3000
+updateIntervalSeconds: 5
+deviceIdLength: 10

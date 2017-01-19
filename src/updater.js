@@ -7,32 +7,32 @@ const extract = require('extract-zip')
 const encoding = 'utf8'
 
 /*
-Contacts the given hub and checks if an update is needed.
-Uses the given rootDir to check device-id and snapshot-id.
-If the hub says an update is needed, then I'll download the update,
-unzip it, and execute update.sh.
-I'll pass in the environment variable 'app_root' so the script knows where to put stuff.
-And finally, I'll contact the hub again to notify how it went (including output logs).
+ Contacts the given hub and checks if an update is needed.
+ Uses the given rootDir to check device-id and snapshot-id.
+ If the hub says an update is needed, then I'll download the update,
+ unzip it, and execute update.sh.
+ I'll pass in the environment variable 'app_root' so the script knows where to put stuff.
+ And finally, I'll contact the hub again to notify how it went (including output logs).
 
-See the update protocol for details:
+ See the update protocol for details:
  https://github.com/sveasmart/updater-protocol
- 
-If an update was needed, and the updater managed to download the update script and execute it,
-then it will return something like through the callback:
 
-{
+ If an update was needed, and the updater managed to download the update script and execute it,
+ then it will return something like through the callback:
+
+ {
  deviceId: 'deviceA',
  snapshotId: '22',
  success: true,
  output: 'installing widget version 2.0.3... done!'
  }
- 
+
  Same thing if the update script was executed but failed. 
 
  @param {string} rootDir - the root dir that contains (or will contain) device-id, snapshot-id, apps, and downloads. For example "/home"
  @param {string} hubUrl - the base url of the updater hub. For example http://hub.updater.eu. No trailing slash.
-*/
-function update(rootDir, hubUrl, callback) {
+ */
+function checkForUpdate(rootDir, hubUrl, callback) {
   //Read the deviceId from file
   const deviceIdFile = path.join(rootDir, "device-id")
   const deviceId = fs.readFileSync(deviceIdFile, encoding)
@@ -173,6 +173,6 @@ function getMandatoryResponseProperty(body, propertyName) {
   }
 }
 
-exports.update = update
+exports.checkForUpdate = checkForUpdate
 
 

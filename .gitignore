@@ -1,4 +1,7 @@
-# IDE
+# default root dir when running the updater
+updaterroot
+
+# IDEA
 .idea
 
 # Spikes

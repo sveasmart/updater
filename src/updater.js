@@ -141,7 +141,15 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, callback) {
 
       if (fs.existsSync(updateScript)) {
         try {
-          const outputBuffer = child_process.execFileSync(updateScript)
+          const appsRootDir = path.join(rootDir, 'apps')
+          const args = null
+          const options = {
+            'cwd': snapshotRoot,
+            'env': {
+              'apps_root': appsRootDir
+            }
+          }
+          const outputBuffer = child_process.execFileSync(updateScript, args, options)
 
           //Yay, the script succeed!
           //Update the snapshot ID

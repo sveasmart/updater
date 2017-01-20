@@ -129,4 +129,29 @@ describe('Updater', function() {
     })
   })
 
+  //================================================================================
+  it('should set environment variable "app_root" when running update scripts', function(done) {
+
+    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', function(err) {
+      if (err) return done(err)
+
+      //Ensure that the environment variable was set
+      assert.isOk(updater.lastExecutedFileOptions.env)
+      assert.equal(updater.lastExecutedFileOptions.env.apps_root, "/updatertest/apps")
+      done()
+    })
+  })
+
+  //================================================================================
+  it('should set the correct working directory when running update scripts', function(done) {
+
+    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', function(err) {
+      if (err) return done(err)
+
+      //Ensure that the environment variable was set
+      assert.isOk(updater.lastExecutedFileOptions.cwd)
+      assert.equal(updater.lastExecutedFileOptions.cwd, "/updatertest/downloads/1")
+      done()
+    })
+  })
 })

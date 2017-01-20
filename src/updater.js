@@ -113,6 +113,7 @@ function tellHubHowItWorkedOut(hubUrl, deviceId, snapshotId, success, output, ca
   request(options, function(err, result) {
     if (err) return callback(err)
     callback(null, result)
+
   })
 }
 
@@ -124,9 +125,8 @@ If anything goes wrong, the callback is called with an error.
 */
 function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, callback) {
   //Create the download folder for this zip file
-  fs.mkdirSync(path.join(rootDir, 'downloads'))
-  const snapshotRoot = path.join(rootDir, 'downloads', snapshotId)
-  fs.mkdirSync(snapshotRoot)
+  const downloadsDir = makeDir(rootDir, 'downloads')
+  const snapshotRoot = makeDir(downloadsDir, snapshotId)
   const downloadedFile = snapshotRoot + '/download.zip'
 
   //Download the file
@@ -138,7 +138,6 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, callback) {
 
       //OK, we've unzipped the file. Now let's call the update.sh script.
       const updateScript = snapshotRoot + "/update.sh"
-
       if (fs.existsSync(updateScript)) {
         try {
           const appsRootDir = path.join(rootDir, 'apps')
@@ -171,6 +170,18 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, callback) {
 
 }
 
+/**
+ * Creates the given dir under the given parent.
+ * If the dir already exists, does nothing.
+ * Returns the full path to the created dir.
+ */
+function makeDir(parent, dirName) {
+  const dirPath = path.join(parent, dirName)
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath)
+  }
+  return dirPath
+}
 
 //Gets the given property, or throws error if it doesn't exist.
 function getMandatoryResponseProperty(body, propertyName) {

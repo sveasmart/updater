@@ -154,4 +154,28 @@ describe('Updater', function() {
       done()
     })
   })
+
+  //================================================================================
+  it('should fail update if the downloaded ZIP doesnt contain update.sh', function(done) {
+    testFixture.setDeviceId("deviceC") //This one has a ZIP file with no update.sh inside!
+    testFixture.setSnapshotId(1)
+
+    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', function(err, result) {
+      if (err) {
+        //Yeah, it might seem like it SHOULD get an error here. But actually, no.
+        //As long as the updated managed to notify the hub about the result,
+        //then technically the update was complete.
+        done(err)
+        return
+      }
+
+      //BUT - no new snapshot should have been generated.
+      assert.equal(testFixture.getSnapshotId(), 1)
+      //And the updater should have reported a failure to the hub.
+      const lastLog = testFixture.getLastLog("deviceC")
+      assert.equal(lastLog.success, false)
+      done()
+    })
+  })
+
 })

@@ -15,7 +15,14 @@ const devices = [
   {
     deviceId: "deviceB",
     latestSnapshotId: "2"
+  },
+
+  {
+    deviceId: "deviceC",
+    latestSnapshotId: "2",
+    fileInZip: "noUpdateFileHereHaHaHa.sh"
   }
+
 ]
 
 //This variable is used to control if the next
@@ -24,7 +31,12 @@ const devices = [
 var shouldNextUpdateScriptSucceed = true
 
 function initDevice(device) {
-  publishZipFile(getZipFileName(device), device.doesUpdateFileWork)
+  var subFileName = "update.sh"
+  if (device.fileInZip) {
+    subFileName = device.fileInZip
+  } 
+
+  publishZipFile(getZipFileName(device), subFileName, "Hello")
   device.lastLog = null
 }
 
@@ -36,9 +48,9 @@ function getZipFileUrl(device) {
   return "http://download.fakeupdater.com/" + getZipFileName(device)
 }
 
-function publishZipFile(fileName, works) {
+function publishZipFile(fileName, subFileName, subFileContent) {
   var zipFile = Archiver('zip');
-  zipFile.append('Hello',  { name: 'update.sh' }).finalize()
+  zipFile.append(subFileContent,  { name: subFileName }).finalize()
 
   nock('http://download.fakeupdater.com')
     .get("/" + fileName)

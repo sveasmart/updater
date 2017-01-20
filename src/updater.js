@@ -68,7 +68,7 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, callback) {
     if (err) return callback(err)
     if (body.status === "noUpdateNeeded") {
       //Nothing to change. We are done!
-      callback()
+      callback(null, body)
 
     } else if (body.status === "updateNeeded") {
       //The hub says we need to update! Get the URL to the file.

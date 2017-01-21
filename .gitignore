@@ -6,6 +6,7 @@ updaterroot
 
 # Spikes
 test/spikes.js
+test/spike.sh
 
 # Logs
 logs

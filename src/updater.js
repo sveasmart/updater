@@ -174,6 +174,7 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, callback) {
           //otherwise the apps_root env variable doesn't reach the update script.
           //Not when using the real (unmocked) child_process at least.
           process.env.apps_root = appsRootDir
+          process.env.update_root = cwd
           const outputBuffer = child_process.execFileSync(updateScript, args, options)
 
           //Yay, the script succeed!

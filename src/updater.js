@@ -78,18 +78,25 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, callback) {
       console.log("Will update device " + deviceId + " from snapshot " + snapshotId + " to " + newSnapshotId)
 
       //Execute the update
-      executeUpdate(rootDir, deviceId, newSnapshotId, downloadUrl, function(err, scriptOutput) {
-        //OK the update script has been executed. Let's see how it worked out.
-        if (err) {
-          console.log("Update failed! ", err)
-          //Oh, the update script failed! Let's tell the hub
-          tellHubHowItWorkedOut(hubUrl, deviceId, newSnapshotId, false, err.message, callback)
-        } else {
-          console.log("Update succeeded!", scriptOutput)
-          //The update script succeeded! Let's tell the hub.
-          tellHubHowItWorkedOut(hubUrl, deviceId, newSnapshotId, true, scriptOutput, callback)
-        }
-      })
+      try {
+        executeUpdate(rootDir, deviceId, newSnapshotId, downloadUrl, function(err, scriptOutput) {
+          //OK the update script has been executed. Let's see how it worked out.
+          if (err) {
+            console.log("Update failed! ", err)
+            //Oh, the update script failed! Let's tell the hub
+            tellHubHowItWorkedOut(hubUrl, deviceId, newSnapshotId, false, err.message, callback)
+          } else {
+            console.log("Update succeeded!", scriptOutput)
+            //The update script succeeded! Let's tell the hub.
+            tellHubHowItWorkedOut(hubUrl, deviceId, newSnapshotId, true, scriptOutput, callback)
+          }
+        })
+      } catch (err) {
+        console.log("Update failed! Threw an error. ", err)
+        //Oh, the update script failed! Let's tell the hub
+        tellHubHowItWorkedOut(hubUrl, deviceId, newSnapshotId, false, err.message, callback)
+
+      }
 
     } else {
       //Invalid response from the hub. Bail out!
@@ -100,11 +107,16 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, callback) {
 }
 
 function tellHubHowItWorkedOut(hubUrl, deviceId, snapshotId, success, output, callback) {
+  if (success) {
+    console.log("Telling the hub that the update to " + snapshotId + " succeeded")
+  } else {
+    console.log("Telling the hub that the update to " + snapshotId + " failed")
+  }
   //This is what we'll send to the hub (and to our callback)
   const result = {
     deviceId: deviceId,
     snapshotId: snapshotId,
-    success: success,
+    success: "" + success,
     output: output
   }
 
@@ -136,6 +148,7 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, callback) {
 
   //Download the file
   const zipFilePipe = request({uri: downloadUrl}).pipe(fs.createWriteStream(downloadedFile))
+
   zipFilePipe.on('close', function() {
     //OK now I got my ZIP file. Let's unzip it.
     extract(downloadedFile, {dir: snapshotRoot}, function (err) {

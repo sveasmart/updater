@@ -159,12 +159,15 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, callback) {
 
       if (updateScript) {
         try {
+          const cwd = path.resolve(updateScript, "..")
+          console.log("Using cwd: " + cwd)
           const appsRootDir = path.resolve(rootDir, 'apps')
           const args = {}
           const options = {
-            'cwd': snapshotRoot,
+            'cwd': cwd,
             'env': {
-              'apps_root': appsRootDir
+              'apps_root': appsRootDir,
+              'update_root': cwd
             }
           }
           //For some reason I have to update my process.env,

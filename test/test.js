@@ -85,7 +85,7 @@ describe('Updater', function() {
       //Ensure that the result was posted to the hub
       const lastLog = testFixture.getLastLog("deviceA")
       assert.isOk(lastLog)
-      assert.equal(lastLog.success, true)
+      assert.equal(lastLog.success, 'true')
       assert.equal(lastLog.output, "update successful!")
 
       done()
@@ -106,7 +106,7 @@ describe('Updater', function() {
       //Ensure that the result was posted to the hub
       const lastLog = testFixture.getLastLog("deviceA")
       assert.isOk(lastLog)
-      assert.equal(lastLog.success, false)
+      assert.equal(lastLog.success, 'false')
       assert.equal(lastLog.output, "update failed!")
 
       done()
@@ -173,7 +173,7 @@ describe('Updater', function() {
       assert.equal(testFixture.getSnapshotId(), 1)
       //And the updater should have reported a failure to the hub.
       const lastLog = testFixture.getLastLog("deviceC")
-      assert.equal(lastLog.success, false)
+      assert.equal(lastLog.success, 'false')
       done()
     })
   })

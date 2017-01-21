@@ -81,7 +81,7 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, callback) {
       executeUpdate(rootDir, deviceId, newSnapshotId, downloadUrl, function(err, scriptOutput) {
         //OK the update script has been executed. Let's see how it worked out.
         if (err) {
-          console.log("Update failed! ", err.message)
+          console.log("Update failed! ", err)
           //Oh, the update script failed! Let's tell the hub
           tellHubHowItWorkedOut(hubUrl, deviceId, newSnapshotId, false, err.message, callback)
         } else {
@@ -146,14 +146,18 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, callback) {
 
       if (updateScript) {
         try {
-          const appsRootDir = path.join(rootDir, 'apps')
-          const args = null
+          const appsRootDir = path.resolve(rootDir, 'apps')
+          const args = {}
           const options = {
             'cwd': snapshotRoot,
             'env': {
               'apps_root': appsRootDir
             }
           }
+          //For some reason I have to update my process.env,
+          //otherwise the apps_root env variable doesn't reach the update script.
+          //Not when using the real (unmocked) child_process at least.
+          process.env.apps_root = appsRootDir
           const outputBuffer = child_process.execFileSync(updateScript, args, options)
 
           //Yay, the script succeed!

@@ -5,3 +5,4 @@ node_js:
 
 notifications:
   slack: sveasolar:SlVckMxaT9VUoDiPEA5mcutq
+  email: false

@@ -5,4 +5,6 @@ node_js:
 
 notifications:
   slack: sveasolar:SlVckMxaT9VUoDiPEA5mcutq
+    on_success: change
+    on_failure: always
   email: false

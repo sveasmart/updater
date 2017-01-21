@@ -72,23 +72,28 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, callback) {
 
     } else if (body.status === "updateNeeded") {
       //The hub says we need to update! Get the URL to the file.
-      const snapshotId = getMandatoryResponseProperty(body, "snapshotId")
+      const newSnapshotId = getMandatoryResponseProperty(body, "snapshotId")
       const downloadUrl = getMandatoryResponseProperty(body, "downloadUrl")
-      
+
+      console.log("Will update device " + deviceId + " from snapshot " + snapshotId + " to " + newSnapshotId)
+
       //Execute the update
-      executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, function(err, scriptOutput) {
+      executeUpdate(rootDir, deviceId, newSnapshotId, downloadUrl, function(err, scriptOutput) {
         //OK the update script has been executed. Let's see how it worked out.
         if (err) {
+          console.log("Update failed! ", err.message)
           //Oh, the update script failed! Let's tell the hub
-          tellHubHowItWorkedOut(hubUrl, deviceId, snapshotId, false, err.message, callback)
+          tellHubHowItWorkedOut(hubUrl, deviceId, newSnapshotId, false, err.message, callback)
         } else {
+          console.log("Update succeeded!", scriptOutput)
           //The update script succeeded! Let's tell the hub.
-          tellHubHowItWorkedOut(hubUrl, deviceId, snapshotId, true, scriptOutput, callback)
+          tellHubHowItWorkedOut(hubUrl, deviceId, newSnapshotId, true, scriptOutput, callback)
         }
       })
 
     } else {
       //Invalid response from the hub. Bail out!
+      console.log("Unexpected or missing status in response body", body)
       callback(new Error("Unexpected or missing status in response body: " + body))
     }
   })
@@ -137,8 +142,9 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, callback) {
       if (err) return callback(err)
 
       //OK, we've unzipped the file. Now let's call the update.sh script.
-      const updateScript = snapshotRoot + "/update.sh"
-      if (fs.existsSync(updateScript)) {
+      const updateScript = findUpdateScript(snapshotRoot)
+
+      if (updateScript) {
         try {
           const appsRootDir = path.join(rootDir, 'apps')
           const args = null
@@ -167,6 +173,28 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, callback) {
     })
 
   })
+
+}
+
+/**
+ * Looks for a file named update.sh in this path, or the first subfolder
+ */
+function findUpdateScript(parent) {
+  let updateScript = path.join(parent, "update.sh")
+  if (fs.existsSync(updateScript)) {
+    return updateScript
+  }
+  const children = fs.readdirSync(parent)
+  for (child of children) {
+    const childFullPath = path.join(parent, child)
+    if (fs.statSync(childFullPath).isDirectory()) {
+      updateScript = path.join(childFullPath, "update.sh")
+      if (fs.existsSync(updateScript)) {
+        return updateScript
+      }
+    }
+  }
+  return null
 
 }
 

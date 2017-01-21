@@ -178,4 +178,17 @@ describe('Updater', function() {
     })
   })
 
+  //================================================================================
+  it('If update.sh is under a subdirectory in the ZIP, it should still be found.', function(done) {
+    testFixture.setDeviceId("deviceD")
+    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', function(err) {
+      if (err) return done(err)
+
+      //Ensure that update.sh was executed
+      assert.equal(updater.lastExecutedFile, "/updatertest/downloads/5/stuff/update.sh")
+
+      done()
+    })
+  })  
+
 })

@@ -21,6 +21,12 @@ const devices = [
     deviceId: "deviceC",
     latestSnapshotId: "2",
     fileInZip: "noUpdateFileHereHaHaHa.sh"
+  },
+
+  {
+    deviceId: "deviceD",
+    latestSnapshotId: "5",
+    scriptIsInSubFolder: true
   }
 
 ]
@@ -36,7 +42,7 @@ function initDevice(device) {
     subFileName = device.fileInZip
   } 
 
-  publishZipFile(getZipFileName(device), subFileName, "Hello")
+  publishZipFile(getZipFileName(device), subFileName, "Hello", device.scriptIsInSubFolder)
   device.lastLog = null
 }
 
@@ -48,9 +54,14 @@ function getZipFileUrl(device) {
   return "http://download.fakeupdater.com/" + getZipFileName(device)
 }
 
-function publishZipFile(fileName, subFileName, subFileContent) {
+function publishZipFile(fileName, subFileName, subFileContent, subFileIsInSubFolder) {
   var zipFile = Archiver('zip');
-  zipFile.append(subFileContent,  { name: subFileName }).finalize()
+
+  if (subFileIsInSubFolder) {
+    zipFile.append(subFileContent,  { name: "stuff/" + subFileName }).finalize()
+  } else {
+    zipFile.append(subFileContent,  { name: subFileName }).finalize()
+  }
 
   nock('http://download.fakeupdater.com')
     .get("/" + fileName)

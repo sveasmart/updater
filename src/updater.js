@@ -36,13 +36,13 @@ function checkForUpdate(rootDir, hubUrl, callback) {
   try {
     //Read the deviceId from file
     const deviceIdFile = path.join(rootDir, "device-id")
-    const deviceId = fs.readFileSync(deviceIdFile, encoding)
+    const deviceId = fs.readFileSync(deviceIdFile, encoding).toString()
 
     //Read the snapshotId from file, or use 0 if not found.
     const snapshotIdFile = path.join(rootDir, "snapshot-id")
     var snapshotId = 0
     if (fs.existsSync(snapshotIdFile)) {
-      snapshotId = fs.readFileSync(snapshotIdFile, encoding)
+      snapshotId = fs.readFileSync(snapshotIdFile, encoding).toString()
     }
 
     //Go check if an update is needed

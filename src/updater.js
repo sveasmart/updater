@@ -74,12 +74,13 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, callback) {
       //The hub says we need to update! Get the URL to the file.
       const newSnapshotId = getMandatoryResponseProperty(body, "snapshotId")
       const downloadUrl = getMandatoryResponseProperty(body, "downloadUrl")
+      const downloadType = getOptionalResponseProperty(body, "downloadType", "zip").toLowerCase()
 
       console.log("Will update device " + deviceId + " from snapshot " + snapshotId + " to " + newSnapshotId)
 
       //Execute the update
       try {
-        executeUpdate(rootDir, deviceId, newSnapshotId, downloadUrl, function(err, scriptOutput) {
+        executeUpdate(rootDir, deviceId, newSnapshotId, downloadUrl, downloadType, function(err, scriptOutput) {
           //OK the update script has been executed. Let's see how it worked out.
           if (err) {
             console.log("Update failed! ", err)
@@ -140,60 +141,75 @@ Downloads the given file, unpacks, and calls update.sh.
 If all goes well, the callback is called with the output from the script.
 If anything goes wrong, the callback is called with an error.
 */
-function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, callback) {
+function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, downloadType, callback) {
   //Create the download folder for this zip file
   const downloadsDir = makeDir(rootDir, 'downloads')
   const snapshotRoot = makeDir(downloadsDir, snapshotId)
-  const downloadedFile = snapshotRoot + '/download.zip'
 
-  //Download the file
-  const zipFilePipe = request({uri: downloadUrl}).pipe(fs.createWriteStream(downloadedFile))
+  if (downloadType == 'zip') {
+    const downloadedFile = path.join(snapshotRoot, 'download.zip')
 
-  zipFilePipe.on('close', function() {
-    //OK now I got my ZIP file. Let's unzip it.
-    extract(downloadedFile, {dir: snapshotRoot}, function (err) {
-      if (err) return callback(err)
+    //Download the file
+    const filePipe = request({uri: downloadUrl}).pipe(fs.createWriteStream(downloadedFile))
 
-      //OK, we've unzipped the file. Now let's call the update.sh script.
-      const updateScript = findUpdateScript(snapshotRoot)
+    filePipe.on('close', function() {
+      //OK now I got my file. Unzip it.
+      extract(downloadedFile, {dir: snapshotRoot}, function (err) {
+        if (err) return callback(err)
 
-      if (updateScript) {
-        try {
-          const cwd = path.resolve(updateScript, "..")
-          console.log("Using cwd: " + cwd)
-          const appsRootDir = path.resolve(rootDir, 'apps')
-          const args = {}
-          const options = {
-            'cwd': cwd,
-            'env': {
-              'apps_root': appsRootDir,
-              'update_root': cwd
-            }
-          }
-          //For some reason I have to update my process.env,
-          //otherwise the apps_root env variable doesn't reach the update script.
-          //Not when using the real (unmocked) child_process at least.
-          process.env.apps_root = appsRootDir
-          process.env.update_root = cwd
-          const outputBuffer = child_process.execFileSync(updateScript, args, options)
+        //OK, we've unzipped the file. Now let's call the update.sh script.
+        const updateScript = findUpdateScript(snapshotRoot)
 
-          //Yay, the script succeed!
-          //Update the snapshot ID
-          const snapshotIdFile = path.join(rootDir, "snapshot-id")
-          fs.writeFileSync(snapshotIdFile, snapshotId)
-
-          callback(null, outputBuffer.toString())
-
-        } catch (err) {
-          callback(err)
+        if (updateScript) {
+          executeUpdateScript(rootDir, updateScript, snapshotId, callback)
+        } else {
+          callback(new Error("The zip file didn't contain update.sh!"))
         }
-
-      } else {
-        callback(new Error("The zip file didn't contain update.sh!"))
-      }
+      })
     })
 
-  })
+  } else if (downloadType == 'sh') {
+    const downloadedFile = path.join(snapshotRoot, 'update.sh')
+    const filePipe = request({uri: downloadUrl}).pipe(fs.createWriteStream(downloadedFile))
+    filePipe.on('close', function() {
+      //OK now I got my file. Execute it.
+      executeUpdateScript(rootDir, downloadedFile, snapshotId, callback)
+    })
+  } else {
+    callback(new Error("Invalid downloadType: '" + downloadType + "'. Should be 'zip' or 'sh'."))
+  }
+
+}
+
+function executeUpdateScript(rootDir, updateScript, snapshotId, callback) {
+  try {
+    const cwd = path.resolve(updateScript, "..")
+    const appsRootDir = path.resolve(rootDir, 'apps')
+    const args = {}
+    const options = {
+      'cwd': cwd,
+      'env': {
+        'apps_root': appsRootDir,
+        'update_root': cwd
+      }
+    }
+    //For some reason I have to update my process.env,
+    //otherwise the apps_root env variable doesn't reach the update script.
+    //Not when using the real (unmocked) child_process at least.
+    process.env.apps_root = appsRootDir
+    process.env.update_root = cwd
+    const outputBuffer = child_process.execFileSync(updateScript, args, options)
+
+    //Yay, the script succeed!
+    //Update the snapshot ID
+    const snapshotIdFile = path.join(rootDir, "snapshot-id")
+    fs.writeFileSync(snapshotIdFile, snapshotId)
+
+    callback(null, outputBuffer.toString())
+
+  } catch (err) {
+    callback(err)
+  }
 
 }
 
@@ -238,6 +254,15 @@ function getMandatoryResponseProperty(body, propertyName) {
     return body[propertyName]
   } else {
     throw new Error("Can't find property " + propertyName + " in body: " + JSON.stringify(body))
+  }
+}
+
+//Gets the given property if provided, otherwise returns the given default
+function getOptionalResponseProperty(body, propertyName, defaultValue) {
+  if (propertyName in body) {
+    return body[propertyName]
+  } else {
+    return defaultValue
   }
 }
 

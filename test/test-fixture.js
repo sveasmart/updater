@@ -27,6 +27,12 @@ const devices = [
     deviceId: "deviceD",
     latestSnapshotId: "5",
     scriptIsInSubFolder: true
+  },
+
+  {
+    deviceId: "deviceE",
+    latestSnapshotId: "7",
+    shFileDirectly: true
   }
 
 ]
@@ -42,8 +48,17 @@ function initDevice(device) {
     subFileName = device.fileInZip
   } 
 
-  publishZipFile(getZipFileName(device), subFileName, "Hello", device.scriptIsInSubFolder)
+  if (device.shFileDirectly === true) {
+    publishShFile(getShFileName(device), "hello")
+  } else {
+    publishZipFile(getZipFileName(device), subFileName, "Hello", device.scriptIsInSubFolder)
+  }
+
   device.lastLog = null
+}
+
+function getShFileName(device) {
+  return "update-" + device.deviceId + "-" + device.latestSnapshotId + ".sh"
 }
 
 function getZipFileName(device) {
@@ -52,6 +67,10 @@ function getZipFileName(device) {
 
 function getZipFileUrl(device) {
   return "http://download.fakeupdater.com/" + getZipFileName(device)
+}
+
+function getShFileUrl(device) {
+  return "http://download.fakeupdater.com/" + getShFileName(device)
 }
 
 function publishZipFile(fileName, subFileName, subFileContent, subFileIsInSubFolder) {
@@ -68,6 +87,12 @@ function publishZipFile(fileName, subFileName, subFileContent, subFileIsInSubFol
     .reply(200, function(uri, requestBody) {
       return zipFile
     })
+}
+
+function publishShFile(fileName, fileContent) {
+  nock('http://download.fakeupdater.com')
+    .get("/" + fileName)
+    .replyWithFile(200, "/serverstuff/update.sh")
 }
 
 function getDevice(deviceId) {
@@ -97,11 +122,22 @@ function initFixture() {
           status: 'noUpdateNeeded'
         }
       } else {
-        return {
-          status: 'updateNeeded',
-          snapshotId: device.latestSnapshotId,
-          downloadUrl: getZipFileUrl(device)
+        if (device.shFileDirectly) {
+          return {
+            status: 'updateNeeded',
+            snapshotId: device.latestSnapshotId,
+            downloadUrl: getShFileUrl(device),
+            downloadType: 'sh'
+          }
+        } else {
+          return {
+            status: 'updateNeeded',
+            snapshotId: device.latestSnapshotId,
+            downloadUrl: getZipFileUrl(device)
+          }
+
         }
+
       }
     })
 

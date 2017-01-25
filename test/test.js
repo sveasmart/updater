@@ -189,6 +189,18 @@ describe('Updater', function() {
 
       done()
     })
-  })  
+  })
 
+  //================================================================================
+  it('can dowload an .sh file directly.', function(done) {
+    testFixture.setDeviceId("deviceE")
+    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', function(err) {
+      if (err) return done(err)
+
+      //Ensure that update.sh was executed
+      assert.equal(updater.lastExecutedFile, "/updatertest/downloads/7/update.sh")
+
+      done()
+    })
+  })
 })

@@ -15,6 +15,9 @@ function initMocks() {
   this.mockFileSystem({
     '/updatertest': { //Note - this call fails if a REAL folder with this name exists in the filesystem.
       'device-id': 'deviceA'
+    },
+    '/serverstuff': {
+      'update.sh': 'echo OK'
     }
   })
   assert.isOk(fs.existsSync("/updatertest"))

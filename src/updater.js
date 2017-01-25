@@ -33,19 +33,24 @@ const encoding = 'utf8'
  @param {string} hubUrl - the base url of the updater hub. For example http://hub.updater.eu. No trailing slash.
  */
 function checkForUpdate(rootDir, hubUrl, callback) {
-  //Read the deviceId from file
-  const deviceIdFile = path.join(rootDir, "device-id")
-  const deviceId = fs.readFileSync(deviceIdFile, encoding)
+  try {
+    //Read the deviceId from file
+    const deviceIdFile = path.join(rootDir, "device-id")
+    const deviceId = fs.readFileSync(deviceIdFile, encoding)
 
-  //Read the snapshotId from file, or use 0 if not found.
-  const snapshotIdFile = path.join(rootDir, "snapshot-id")
-  var snapshotId = 0
-  if (fs.existsSync(snapshotIdFile)) {
-    snapshotId = fs.readFileSync(snapshotIdFile, encoding)
+    //Read the snapshotId from file, or use 0 if not found.
+    const snapshotIdFile = path.join(rootDir, "snapshot-id")
+    var snapshotId = 0
+    if (fs.existsSync(snapshotIdFile)) {
+      snapshotId = fs.readFileSync(snapshotIdFile, encoding)
+    }
+
+    //Go check if an update is needed
+    askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, callback)
+  } catch (err) {
+    console.log("Something went synchronously wrong when calling checkForUpdate. Caught the error, will return it in the callback.", err)
+    callback(err)
   }
-  
-  //Go check if an update is needed
-  askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, callback)
 
 }
 
@@ -72,7 +77,7 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, callback) {
 
     } else if (body.status === "updateNeeded") {
       //The hub says we need to update! Get the URL to the file.
-      const newSnapshotId = getMandatoryResponseProperty(body, "snapshotId")
+      const newSnapshotId = getMandatoryResponseProperty(body, "snapshotId").toString()
       const downloadUrl = getMandatoryResponseProperty(body, "downloadUrl")
       const downloadType = getOptionalResponseProperty(body, "downloadType", "zip").toLowerCase()
       const configParams = getOptionalResponseProperty(body, "config", {})
@@ -184,6 +189,8 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, downloadType,
 
 function executeUpdateScript(rootDir, updateScript, snapshotId, configParams, callback) {
   try {
+    child_process.execSync("chmod a+x " + updateScript)
+
     const cwd = path.resolve(updateScript, "..")
     const appsRootDir = path.resolve(rootDir, 'apps')
     const args = {}

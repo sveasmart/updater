@@ -32,7 +32,10 @@ const devices = [
   {
     deviceId: "deviceE",
     latestSnapshotId: "7",
-    shFileDirectly: true
+    shFileDirectly: true,
+    config: {
+      color: 'blue'
+    }
   }
 
 ]
@@ -122,21 +125,25 @@ function initFixture() {
           status: 'noUpdateNeeded'
         }
       } else {
+        let response
         if (device.shFileDirectly) {
-          return {
+          response = {
             status: 'updateNeeded',
             snapshotId: device.latestSnapshotId,
             downloadUrl: getShFileUrl(device),
             downloadType: 'sh'
           }
         } else {
-          return {
+          response = {
             status: 'updateNeeded',
             snapshotId: device.latestSnapshotId,
             downloadUrl: getZipFileUrl(device)
           }
-
         }
+        if (device.config) {
+          response.config = device.config
+        }
+        return response
 
       }
     })

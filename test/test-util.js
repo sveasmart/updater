@@ -17,7 +17,7 @@ function initMocks() {
       'device-id': 'deviceA'
     },
     '/serverstuff': {
-      'update.sh': 'echo OK'
+      'update.sh': 'echo $COLOR'
     }
   })
   assert.isOk(fs.existsSync("/updatertest"))

@@ -75,12 +75,13 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, callback) {
       const newSnapshotId = getMandatoryResponseProperty(body, "snapshotId")
       const downloadUrl = getMandatoryResponseProperty(body, "downloadUrl")
       const downloadType = getOptionalResponseProperty(body, "downloadType", "zip").toLowerCase()
-
+      const configParams = getOptionalResponseProperty(body, "config", {})
+      
       console.log("Will update device " + deviceId + " from snapshot " + snapshotId + " to " + newSnapshotId)
 
       //Execute the update
       try {
-        executeUpdate(rootDir, deviceId, newSnapshotId, downloadUrl, downloadType, function(err, scriptOutput) {
+        executeUpdate(rootDir, deviceId, newSnapshotId, downloadUrl, downloadType, configParams, function(err, scriptOutput) {
           //OK the update script has been executed. Let's see how it worked out.
           if (err) {
             console.log("Update failed! ", err)
@@ -141,7 +142,7 @@ Downloads the given file, unpacks, and calls update.sh.
 If all goes well, the callback is called with the output from the script.
 If anything goes wrong, the callback is called with an error.
 */
-function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, downloadType, callback) {
+function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, downloadType, configParams, callback) {
   //Create the download folder for this zip file
   const downloadsDir = makeDir(rootDir, 'downloads')
   const snapshotRoot = makeDir(downloadsDir, snapshotId)
@@ -161,7 +162,7 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, downloadType,
         const updateScript = findUpdateScript(snapshotRoot)
 
         if (updateScript) {
-          executeUpdateScript(rootDir, updateScript, snapshotId, callback)
+          executeUpdateScript(rootDir, updateScript, snapshotId, configParams, callback)
         } else {
           callback(new Error("The zip file didn't contain update.sh!"))
         }
@@ -173,7 +174,7 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, downloadType,
     const filePipe = request({uri: downloadUrl}).pipe(fs.createWriteStream(downloadedFile))
     filePipe.on('close', function() {
       //OK now I got my file. Execute it.
-      executeUpdateScript(rootDir, downloadedFile, snapshotId, callback)
+      executeUpdateScript(rootDir, downloadedFile, snapshotId, configParams, callback)
     })
   } else {
     callback(new Error("Invalid downloadType: '" + downloadType + "'. Should be 'zip' or 'sh'."))
@@ -181,7 +182,7 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, downloadType,
 
 }
 
-function executeUpdateScript(rootDir, updateScript, snapshotId, callback) {
+function executeUpdateScript(rootDir, updateScript, snapshotId, configParams, callback) {
   try {
     const cwd = path.resolve(updateScript, "..")
     const appsRootDir = path.resolve(rootDir, 'apps')
@@ -198,6 +199,14 @@ function executeUpdateScript(rootDir, updateScript, snapshotId, callback) {
     //Not when using the real (unmocked) child_process at least.
     process.env.apps_root = appsRootDir
     process.env.update_root = cwd
+
+    //Let's see if any other config params were included.
+    for (key in configParams) {
+      const value = configParams[key]
+      options.env[key] = value
+      process.env[key] = value
+    }
+    
     const outputBuffer = child_process.execFileSync(updateScript, args, options)
 
     //Yay, the script succeed!

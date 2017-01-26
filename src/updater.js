@@ -200,10 +200,11 @@ function executeUpdateScript(rootDir, updateScript, snapshotId, configParams, ca
     const configString = JSON.stringify(configParams)
 
     const cwd = path.resolve(updateScript, "..")
+    console.log("Setting cwd to " + cwd)
+
     const appsRootDir = path.resolve(rootDir, 'apps')
     const args = {}
     const options = {
-      'cwd': cwd,
       'env': {
         'apps_root': appsRootDir,
         'update_root': cwd,
@@ -224,6 +225,7 @@ function executeUpdateScript(rootDir, updateScript, snapshotId, configParams, ca
       output = outputBuffer.toString()
     } else {
       console.log("Executing: " + updateScript)
+      options.cwd = cwd
       const outputBuffer = child_process.execFileSync(updateScript, args, options)
       output = outputBuffer.toString()
     }

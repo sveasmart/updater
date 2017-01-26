@@ -17,12 +17,12 @@ function initMocks() {
       'device-id': 'deviceA'
     },
     '/serverstuff': {
-      'update.sh': 'echo $COLOR'
+      'update.sh': 'echo $COLOR',
+      'update.js': 'console.log("config ", JSON.parse(process.env.config))'
     }
   })
   assert.isOk(fs.existsSync("/updatertest"))
   assert.isOk(fs.existsSync("/updatertest/device-id"))
 }
-
 
 exports.initMocks = initMocks

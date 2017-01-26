@@ -19,9 +19,27 @@ function getUpdater() {
 
   var updater = null
   const childProcessMock = {
+    execSync: function(command, options) {
+      console.log("execSync", command)
+      if (command.startsWith("chmod")) {
+        //Ignore chmod
+        return
+      }
+
+      updater.lastExecutedCommand = command
+      updater.lastExecutedCommandOptions = options
+
+      if (testFixture.shouldNextUpdateScriptSucceed) {
+        return "update successful!"
+      } else {
+        throw new Error("update failed!")
+      }
+    },
+
     execFileSync: function(path, args, options) {
-      updater.lastExecutedFile = path
-      updater.lastExecutedFileOptions = options
+      console.log("execFileSync", path)
+      updater.lastExecutedCommand = path
+      updater.lastExecutedCommandOptions = options
 
       if (testFixture.shouldNextUpdateScriptSucceed) {
         return "update successful!"

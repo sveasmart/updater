@@ -32,12 +32,22 @@ const devices = [
   {
     deviceId: "deviceE",
     latestSnapshotId: "7",
-    shFileDirectly: true,
+    downloadType: 'sh',
     config: {
       color: 'blue'
     }
-  }
+  },
 
+  {
+    deviceId: "deviceF",
+    latestSnapshotId: "8",
+    downloadType: 'js',
+    config: {
+      app1: {
+        color: 'red'
+      }
+    }
+  }
 ]
 
 //This variable is used to control if the next
@@ -51,29 +61,25 @@ function initDevice(device) {
     subFileName = device.fileInZip
   } 
 
-  if (device.shFileDirectly === true) {
-    publishShFile(getShFileName(device), "hello")
+  if (!device.downloadType || device.downloadType == 'zip') {
+    publishZipFile(getFileName(device), subFileName, "Hello", device.scriptIsInSubFolder)
+  } else if (device.downloadType == 'sh') {
+    publishShFile(getFileName(device))
+  } else if (device.downloadType == 'js') {
+    publishJsFile(getFileName(device))
   } else {
-    publishZipFile(getZipFileName(device), subFileName, "Hello", device.scriptIsInSubFolder)
+    throw new Error("Invalid downloadType: " + device.downloadType)
   }
 
   device.lastLog = null
 }
 
-function getShFileName(device) {
-  return "update-" + device.deviceId + "-" + device.latestSnapshotId + ".sh"
+function getFileName(device) {
+  return "update-" + device.deviceId + "-" + device.latestSnapshotId + "." + device.downloadType
 }
 
-function getZipFileName(device) {
-  return "update-" + device.deviceId + "-" + device.latestSnapshotId + ".zip"
-}
-
-function getZipFileUrl(device) {
-  return "http://download.fakeupdater.com/" + getZipFileName(device)
-}
-
-function getShFileUrl(device) {
-  return "http://download.fakeupdater.com/" + getShFileName(device)
+function getFileUrl(device) {
+  return "http://download.fakeupdater.com/" + getFileName(device)
 }
 
 function publishZipFile(fileName, subFileName, subFileContent, subFileIsInSubFolder) {
@@ -92,10 +98,17 @@ function publishZipFile(fileName, subFileName, subFileContent, subFileIsInSubFol
     })
 }
 
-function publishShFile(fileName, fileContent) {
+function publishShFile(fileName) {
   nock('http://download.fakeupdater.com')
     .get("/" + fileName)
     .replyWithFile(200, "/serverstuff/update.sh")
+}
+
+
+function publishJsFile(fileName) {
+  nock('http://download.fakeupdater.com')
+    .get("/" + fileName)
+    .replyWithFile(200, "/serverstuff/update.js")
 }
 
 function getDevice(deviceId) {
@@ -125,20 +138,11 @@ function initFixture() {
           status: 'noUpdateNeeded'
         }
       } else {
-        let response
-        if (device.shFileDirectly) {
-          response = {
-            status: 'updateNeeded',
-            snapshotId: device.latestSnapshotId,
-            downloadUrl: getShFileUrl(device),
-            downloadType: 'sh'
-          }
-        } else {
-          response = {
-            status: 'updateNeeded',
-            snapshotId: device.latestSnapshotId,
-            downloadUrl: getZipFileUrl(device)
-          }
+        const response = {
+          status: 'updateNeeded',
+          snapshotId: device.latestSnapshotId,
+          downloadUrl: getFileUrl(device),
+          downloadType: device.downloadType
         }
         if (device.config) {
           response.config = device.config

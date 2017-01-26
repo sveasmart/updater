@@ -46,7 +46,7 @@ describe('Updater', function() {
       if (err) return done(err)
 
       //Check that no update was exected
-      assert.isNotOk(updater.lastExecutedFile)
+      assert.isNotOk(updater.lastExecutedCommand)
       done()
     })
   })
@@ -67,7 +67,7 @@ describe('Updater', function() {
       assert.isOk(fs.existsSync("/updatertest/downloads/1/update.sh"))
 
       //Ensure that update.sh was executed
-      assert.equal(updater.lastExecutedFile, "/updatertest/downloads/1/update.sh")
+      assert.equal(updater.lastExecutedCommand, "/updatertest/downloads/1/update.sh")
 
       done()
     })
@@ -80,7 +80,7 @@ describe('Updater', function() {
       if (err) return done(err)
 
       //Ensure that update.sh was executed
-      assert.equal(updater.lastExecutedFile, "/updatertest/downloads/1/update.sh")
+      assert.equal(updater.lastExecutedCommand, "/updatertest/downloads/1/update.sh")
 
       //Ensure that the result was posted to the hub
       const lastLog = testFixture.getLastLog("deviceA")
@@ -101,7 +101,7 @@ describe('Updater', function() {
       if (err) return done(err)
 
       //Ensure that update.sh was executed
-      assert.equal(updater.lastExecutedFile, "/updatertest/downloads/1/update.sh")
+      assert.equal(updater.lastExecutedCommand, "/updatertest/downloads/1/update.sh")
 
       //Ensure that the result was posted to the hub
       const lastLog = testFixture.getLastLog("deviceA")
@@ -136,8 +136,8 @@ describe('Updater', function() {
       if (err) return done(err)
 
       //Ensure that the environment variable was set
-      assert.isOk(updater.lastExecutedFileOptions.env)
-      assert.equal(updater.lastExecutedFileOptions.env.apps_root, "/updatertest/apps")
+      assert.isOk(updater.lastExecutedCommandOptions.env)
+      assert.equal(updater.lastExecutedCommandOptions.env.apps_root, "/updatertest/apps")
       done()
     })
   })
@@ -149,8 +149,8 @@ describe('Updater', function() {
       if (err) return done(err)
 
       //Ensure that the environment variable was set
-      assert.isOk(updater.lastExecutedFileOptions.cwd)
-      assert.equal(updater.lastExecutedFileOptions.cwd, "/updatertest/downloads/1")
+      assert.isOk(updater.lastExecutedCommandOptions.cwd)
+      assert.equal(updater.lastExecutedCommandOptions.cwd, "/updatertest/downloads/1")
       done()
     })
   })
@@ -185,7 +185,7 @@ describe('Updater', function() {
       if (err) return done(err)
 
       //Ensure that update.sh was executed
-      assert.equal(updater.lastExecutedFile, "/updatertest/downloads/5/stuff/update.sh")
+      assert.equal(updater.lastExecutedCommand, "/updatertest/downloads/5/stuff/update.sh")
 
       done()
     })
@@ -198,23 +198,41 @@ describe('Updater', function() {
       if (err) return done(err)
 
       //Ensure that update.sh was executed
-      assert.equal(updater.lastExecutedFile, "/updatertest/downloads/7/update.sh")
+      assert.equal(updater.lastExecutedCommand, "/updatertest/downloads/7/update.sh")
 
       done()
     })
   })
 
-
   //================================================================================
-  it('can receive config parameters.', function(done) {
-    testFixture.setDeviceId("deviceE")
+  it('can execute a js file', function(done) {
+    testFixture.setDeviceId("deviceF")
     updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', function(err) {
       if (err) return done(err)
 
-      //Ensure that update.sh was executed
-      assert.equal(updater.lastExecutedFile, "/updatertest/downloads/7/update.sh")
-      assert.equal(updater.lastExecutedFileOptions.env.color, "blue")
+      //Ensure that update.js was executed
+      assert.equal(updater.lastExecutedCommand, "node /updatertest/downloads/8/update.js")
+
       done()
     })
-  })  
+  })
+  
+  //================================================================================
+  it('can receive a nested config', function(done) {
+    testFixture.setDeviceId("deviceF")
+    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', function(err) {
+      if (err) return done(err)
+
+      //Ensure that update.js was executed
+      assert.equal(updater.lastExecutedCommand, "node /updatertest/downloads/8/update.js")
+      const configString = updater.lastExecutedCommandOptions.env.config
+      const config = JSON.parse(configString)
+
+      assert.equal(config.app1.color, "red")
+      done()
+    })
+  })
+
+
+
 })

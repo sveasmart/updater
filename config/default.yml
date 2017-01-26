@@ -1,4 +1,7 @@
 rootDir: ./updaterroot
 hubUrl: http://localhost:3000/updater
+
+#How often the updater will poll for updates.
+#Minimum 1 second, Maximum 24 hours (86400 seconds)
 updateIntervalSeconds: 5
 deviceIdLength: 10

@@ -68,7 +68,6 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, callback) {
 
   //Do the http request
   request(options, function(err, response, body) {
-
     //Parse the response
     if (err) return callback(err)
     if (body.status === "noUpdateNeeded") {
@@ -181,6 +180,13 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, downloadType,
       //OK now I got my file. Execute it.
       executeUpdateScript(rootDir, downloadedFile, snapshotId, configParams, callback)
     })
+  } else if (downloadType == 'js') {
+    const downloadedFile = path.join(snapshotRoot, 'update.js')
+    const filePipe = request({uri: downloadUrl}).pipe(fs.createWriteStream(downloadedFile))
+    filePipe.on('close', function() {
+      //OK now I got my file. Execute it.
+      executeUpdateScript(rootDir, downloadedFile, snapshotId, configParams, callback)
+    })
   } else {
     callback(new Error("Invalid downloadType: '" + downloadType + "'. Should be 'zip' or 'sh'."))
   }
@@ -191,6 +197,8 @@ function executeUpdateScript(rootDir, updateScript, snapshotId, configParams, ca
   try {
     child_process.execSync("chmod a+x " + updateScript)
 
+    const configString = JSON.stringify(configParams)
+
     const cwd = path.resolve(updateScript, "..")
     const appsRootDir = path.resolve(rootDir, 'apps')
     const args = {}
@@ -198,7 +206,8 @@ function executeUpdateScript(rootDir, updateScript, snapshotId, configParams, ca
       'cwd': cwd,
       'env': {
         'apps_root': appsRootDir,
-        'update_root': cwd
+        'update_root': cwd,
+        'config': configString
       }
     }
     //For some reason I have to update my process.env,
@@ -206,22 +215,25 @@ function executeUpdateScript(rootDir, updateScript, snapshotId, configParams, ca
     //Not when using the real (unmocked) child_process at least.
     process.env.apps_root = appsRootDir
     process.env.update_root = cwd
+    process.env.config = configString
 
-    //Let's see if any other config params were included.
-    for (key in configParams) {
-      const value = configParams[key]
-      options.env[key] = value
-      process.env[key] = value
+    let output
+    if (updateScript.endsWith(".js")) {
+      console.log("Executing: node " + updateScript)
+      const outputBuffer = child_process.execSync("node " + updateScript, options)
+      output = outputBuffer.toString()
+    } else {
+      console.log("Executing: " + updateScript)
+      const outputBuffer = child_process.execFileSync(updateScript, args, options)
+      output = outputBuffer.toString()
     }
-    
-    const outputBuffer = child_process.execFileSync(updateScript, args, options)
 
     //Yay, the script succeed!
     //Update the snapshot ID
     const snapshotIdFile = path.join(rootDir, "snapshot-id")
     fs.writeFileSync(snapshotIdFile, snapshotId)
 
-    callback(null, outputBuffer.toString())
+    callback(null, output)
 
   } catch (err) {
     callback(err)

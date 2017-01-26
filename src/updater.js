@@ -82,6 +82,7 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, callback) {
       const configParams = getOptionalResponseProperty(body, "config", {})
       
       console.log("Will update device " + deviceId + " from snapshot " + snapshotId + " to " + newSnapshotId)
+      console.log("Config: " + configParams)
 
       //Execute the update
       try {

@@ -31,8 +31,9 @@ const encoding = 'utf8'
 
  @param {string} rootDir - the root dir that contains (or will contain) device-id, snapshot-id, apps, and downloads. For example "/home"
  @param {string} hubUrl - the base url of the updater hub. For example http://hub.updater.eu. No trailing slash.
+ @param {bool} simulate - if true, I will only pretend to execute local update scripts.
  */
-function checkForUpdate(rootDir, hubUrl, callback) {
+function checkForUpdate(rootDir, hubUrl, simulate, callback) {
   try {
     //Read the deviceId from file
     const deviceIdFile = path.join(rootDir, "device-id")
@@ -46,7 +47,8 @@ function checkForUpdate(rootDir, hubUrl, callback) {
     }
 
     //Go check if an update is needed
-    askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, callback)
+    console.log("Checking for update from " + hubUrl + " ... (deviceId = " + deviceId + ", snapshotId = " + snapshotId + ")")
+    askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, simulate, callback)
   } catch (err) {
     console.log("Something went synchronously wrong when calling checkForUpdate. Caught the error, will return it in the callback.", err)
     callback(err)
@@ -54,7 +56,7 @@ function checkForUpdate(rootDir, hubUrl, callback) {
 
 }
 
-function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, callback) {
+function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, simulate, callback) {
   //Configure the HTTP request
   const options = {
     uri: hubUrl + "/updateme",
@@ -70,23 +72,25 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, callback) {
   request(options, function(err, response, body) {
     //Parse the response
     if (err) return callback(err)
+    
     if (body.status === "noUpdateNeeded") {
       //Nothing to change. We are done!
       callback(null, body)
 
     } else if (body.status === "updateNeeded") {
+      
       //The hub says we need to update! Get the URL to the file.
       const newSnapshotId = getMandatoryResponseProperty(body, "snapshotId").toString()
       const downloadUrl = getMandatoryResponseProperty(body, "downloadUrl")
       const downloadType = getOptionalResponseProperty(body, "downloadType", "zip").toLowerCase()
       const configParams = getOptionalResponseProperty(body, "config", {})
-      
+
       console.log("Will update device " + deviceId + " from snapshot " + snapshotId + " to " + newSnapshotId)
       console.log("Config: " + configParams)
 
       //Execute the update
       try {
-        executeUpdate(rootDir, deviceId, newSnapshotId, downloadUrl, downloadType, configParams, function(err, scriptOutput) {
+        executeUpdate(rootDir, deviceId, newSnapshotId, downloadUrl, downloadType, configParams, simulate, function(err, scriptOutput) {
           //OK the update script has been executed. Let's see how it worked out.
           if (err) {
             console.log("Update failed! ", err)
@@ -146,8 +150,9 @@ function tellHubHowItWorkedOut(hubUrl, deviceId, snapshotId, success, output, ca
 Downloads the given file, unpacks, and calls update.sh.
 If all goes well, the callback is called with the output from the script.
 If anything goes wrong, the callback is called with an error.
+If simulate == true then I'll just pretend everything worked out, and not run anything.
 */
-function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, downloadType, configParams, callback) {
+function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, downloadType, configParams, simulate, callback) {
   //Create the download folder for this zip file
   const downloadsDir = makeDir(rootDir, 'downloads')
   const snapshotRoot = makeDir(downloadsDir, snapshotId)
@@ -167,7 +172,7 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, downloadType,
         const updateScript = findUpdateScript(snapshotRoot)
 
         if (updateScript) {
-          executeUpdateScript(rootDir, updateScript, snapshotId, configParams, callback)
+          executeUpdateScript(rootDir, updateScript, snapshotId, configParams, simulate, callback)
         } else {
           callback(new Error("The zip file didn't contain update.sh!"))
         }
@@ -179,14 +184,14 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, downloadType,
     const filePipe = request({uri: downloadUrl}).pipe(fs.createWriteStream(downloadedFile))
     filePipe.on('close', function() {
       //OK now I got my file. Execute it.
-      executeUpdateScript(rootDir, downloadedFile, snapshotId, configParams, callback)
+      executeUpdateScript(rootDir, downloadedFile, snapshotId, configParams, simulate, callback)
     })
   } else if (downloadType == 'js') {
     const downloadedFile = path.join(snapshotRoot, 'update.js')
     const filePipe = request({uri: downloadUrl}).pipe(fs.createWriteStream(downloadedFile))
     filePipe.on('close', function() {
       //OK now I got my file. Execute it.
-      executeUpdateScript(rootDir, downloadedFile, snapshotId, configParams, callback)
+      executeUpdateScript(rootDir, downloadedFile, snapshotId, configParams, simulate, callback)
     })
   } else {
     callback(new Error("Invalid downloadType: '" + downloadType + "'. Should be 'zip' or 'sh'."))
@@ -194,7 +199,7 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, downloadType,
 
 }
 
-function executeUpdateScript(rootDir, updateScript, snapshotId, configParams, callback) {
+function executeUpdateScript(rootDir, updateScript, snapshotId, configParams, simulate, callback) {
   try {
     child_process.execSync("chmod a+x " + updateScript)
 
@@ -220,10 +225,16 @@ function executeUpdateScript(rootDir, updateScript, snapshotId, configParams, ca
     process.env.config = configString
 
     let output
-    if (updateScript.endsWith(".js")) {
+    if (simulate) {
+      output = "simulate is true, so I'll just \n" +
+        "pretend that I executed the " + updateScript + "\n" +
+        "and successfully updated to snapshotId " + snapshotId + ".\n" +
+        "Here is the environment I received: \n" + JSON.stringify(options.env, null, 2)
+    } else if (updateScript.endsWith(".js")) {
       console.log("Executing: node " + updateScript)
       const outputBuffer = child_process.execSync("node " + updateScript, options)
       output = outputBuffer.toString()
+
     } else {
       console.log("Executing: " + updateScript)
       options.cwd = cwd

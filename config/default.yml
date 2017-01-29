@@ -5,3 +5,6 @@ hubUrl: http://localhost:3000/updater
 #Minimum 1 second, Maximum 24 hours (86400 seconds)
 updateIntervalSeconds: 5
 deviceIdLength: 10
+
+#If true, it will download but not actually execute the update script.
+simulate: false

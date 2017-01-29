@@ -9,10 +9,13 @@ const rootDir = config.get('rootDir')
 const hubUrl = config.get('hubUrl')
 const updateIntervalSeconds = config.get('updateIntervalSeconds')
 const deviceIdLength = config.get('deviceIdLength')
+const simulate = config.get('simulate')
+if (simulate) {
+  console.log("simulate == true, so I will only pretend to execute local update scripts.")
+}
 
 function checkForUpdate() {
-  console.log("Checking for update from " + hubUrl + " ...")
-  updater.checkForUpdate(rootDir, hubUrl, updateCheckCompleted)
+  updater.checkForUpdate(rootDir, hubUrl, simulate, updateCheckCompleted)
 }
 
 function updateCheckCompleted(err, result) {

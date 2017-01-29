@@ -27,7 +27,7 @@ describe('Updater', function() {
   it('If updaterUrl is invalid, update should fail', function(done) {
 
     //Call the updated with a non-existent URL
-    updater.checkForUpdate("/updatertest", 'http://totally.invalid.url', function(err) {
+    updater.checkForUpdate("/updatertest", 'http://totally.invalid.url', false, function(err) {
       if (err) {
         done() //Good! The update SHOULD fail!
       } else {
@@ -42,7 +42,7 @@ describe('Updater', function() {
     testFixture.setSnapshotId("1")
 
     //Call the updater
-    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', function(err) {
+    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', false, function(err) {
       if (err) return done(err)
 
       //Check that no update was exected
@@ -54,7 +54,7 @@ describe('Updater', function() {
   //================================================================================
   it('If update was needed, it should be downloaded and executed.', function(done) {
 
-    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', function(err) {
+    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', false, function(err) {
       if (err) return done(err)
 
       //Ensure that it created a snapshot-id file
@@ -76,7 +76,7 @@ describe('Updater', function() {
   //================================================================================
   it('The update script output should be posted to the hub', function(done) {
 
-    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', function(err) {
+    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', false, function(err) {
       if (err) return done(err)
 
       //Ensure that update.sh was executed
@@ -97,7 +97,7 @@ describe('Updater', function() {
 
     testFixture.shouldNextUpdateScriptSucceed = false
     
-    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', function(err) {
+    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', false, function(err) {
       if (err) return done(err)
 
       //Ensure that update.sh was executed
@@ -119,7 +119,7 @@ describe('Updater', function() {
     assert.equal(testFixture.getSnapshotId(), "0")
     testFixture.shouldNextUpdateScriptSucceed = false
 
-    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', function(err) {
+    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', false, function(err) {
       if (err) return done(err)
 
       //Ensure that snapshot-id is unchanged
@@ -132,7 +132,7 @@ describe('Updater', function() {
   //================================================================================
   it('should set environment variable "app_root" when running update scripts', function(done) {
 
-    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', function(err) {
+    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', false, function(err) {
       if (err) return done(err)
 
       //Ensure that the environment variable was set
@@ -145,7 +145,7 @@ describe('Updater', function() {
   //================================================================================
   it('should set the correct working directory when running update scripts', function(done) {
 
-    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', function(err) {
+    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', false, function(err) {
       if (err) return done(err)
 
       //Ensure that the environment variable was set
@@ -160,7 +160,7 @@ describe('Updater', function() {
     testFixture.setDeviceId("deviceC") //This one has a ZIP file with no update.sh inside!
     testFixture.setSnapshotId(1)
 
-    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', function(err, result) {
+    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', false, function(err, result) {
       if (err) {
         //Yeah, it might seem like it SHOULD get an error here. But actually, no.
         //As long as the updated managed to notify the hub about the result,
@@ -181,7 +181,7 @@ describe('Updater', function() {
   //================================================================================
   it('If update.sh is under a subdirectory in the ZIP, it should still be found.', function(done) {
     testFixture.setDeviceId("deviceD")
-    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', function(err) {
+    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', false, function(err) {
       if (err) return done(err)
 
       //Ensure that update.sh was executed
@@ -194,7 +194,7 @@ describe('Updater', function() {
   //================================================================================
   it('can download an .sh file directly.', function(done) {
     testFixture.setDeviceId("deviceE")
-    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', function(err) {
+    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', false, function(err) {
       if (err) return done(err)
 
       //Ensure that update.sh was executed
@@ -207,7 +207,7 @@ describe('Updater', function() {
   //================================================================================
   it('can execute a js file', function(done) {
     testFixture.setDeviceId("deviceF")
-    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', function(err) {
+    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', false, function(err) {
       if (err) return done(err)
 
       //Ensure that update.js was executed
@@ -220,7 +220,7 @@ describe('Updater', function() {
   //================================================================================
   it('can receive a nested config', function(done) {
     testFixture.setDeviceId("deviceF")
-    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', function(err) {
+    updater.checkForUpdate("/updatertest", 'http://fakeupdater.com', false, function(err) {
       if (err) return done(err)
 
       //Ensure that update.js was executed

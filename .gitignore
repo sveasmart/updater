@@ -7,8 +7,7 @@ updaterroot
 .idea
 
 # Spikes
-test/spikes.js
-test/spike.sh
+test/spike*
 
 # Logs
 logs

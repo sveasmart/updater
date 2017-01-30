@@ -209,17 +209,7 @@ function executeUpdateScript(rootDir, updateScript, snapshotId, configParams, si
     console.log("Setting cwd to " + cwd)
 
     const appsRootDir = path.resolve(rootDir, 'apps')
-    const args = {}
-    const options = {
-      'env': {
-        'apps_root': appsRootDir,
-        'update_root': cwd,
-        'config': configString
-      }
-    }
-    //For some reason I have to update my process.env,
-    //otherwise the apps_root env variable doesn't reach the update script.
-    //Not when using the real (unmocked) child_process at least.
+
     process.env.apps_root = appsRootDir
     process.env.update_root = cwd
     process.env.config = configString
@@ -232,13 +222,13 @@ function executeUpdateScript(rootDir, updateScript, snapshotId, configParams, si
         "Here is the environment I received: \n" + JSON.stringify(options.env, null, 2)
     } else if (updateScript.endsWith(".js")) {
       console.log("Executing: node " + updateScript)
-      const outputBuffer = child_process.execSync("node " + updateScript, options)
+      const outputBuffer = child_process.execSync("node " + updateScript)
       output = outputBuffer.toString()
 
     } else {
       console.log("Executing: " + updateScript)
       options.cwd = cwd
-      const outputBuffer = child_process.execFileSync(updateScript, args, options)
+      const outputBuffer = child_process.execFileSync(updateScript)
       output = outputBuffer.toString()
     }
 

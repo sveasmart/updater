@@ -18,6 +18,7 @@ function getUpdater() {
   mockery.registerMock('child_process')
 
   var updater = null
+  
   const childProcessMock = {
     execSync: function(command, options) {
       console.log("execSync", command)

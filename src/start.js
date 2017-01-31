@@ -15,14 +15,14 @@ if (simulate) {
 }
 
 function checkForUpdate() {
-  updater.checkForUpdate(rootDir, hubUrl, simulate, updateCheckCompleted)
+  updater.checkForUpdateAndTellHubHowItWorkedOut(rootDir, hubUrl, simulate, updateCheckCompleted)
 }
 
 function updateCheckCompleted(err, result) {
   if (err) {
-    console.log("Update failed! ", err)
+    console.log("Update check failed! ", err)
   } else {
-    console.log("Update completed. ", result)
+    console.log("Update check completed. ", result)
   }
   console.log("Waiting " + updateIntervalSeconds + " seconds...")
   setTimeout(checkForUpdate, updateIntervalSeconds * 1000)

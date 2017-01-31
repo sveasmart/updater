@@ -18,22 +18,20 @@ const encoding = 'utf8'
  https://github.com/sveasmart/updater-protocol
 
  If an update was needed, and the updater managed to download the update script and execute it,
+ and the updater managed to report the result back to the hub,
  then it will return something like through the callback:
-
  {
  deviceId: 'deviceA',
  snapshotId: '22',
- success: true,
- output: 'installing widget version 2.0.3... done!'
+ updated: false,    //true if an update was needed and executed, false if update wasn't needed
+ newUpdateInterval: 30   //if given by the hub
  }
-
- Same thing if the update script was executed but failed. 
 
  @param {string} rootDir - the root dir that contains (or will contain) device-id, snapshot-id, apps, and downloads. For example "/home"
  @param {string} hubUrl - the base url of the updater hub. For example http://hub.updater.eu. No trailing slash.
  @param {bool} simulate - if true, I will only pretend to execute local update scripts.
  */
-function checkForUpdate(rootDir, hubUrl, simulate, callback) {
+function checkForUpdateAndTellHubHowItWorkedOut(rootDir, hubUrl, simulate, callback) {
   try {
     //Read the deviceId from file
     const deviceIdFile = path.join(rootDir, "device-id")
@@ -50,12 +48,21 @@ function checkForUpdate(rootDir, hubUrl, simulate, callback) {
     console.log("Checking for update from " + hubUrl + " ... (deviceId = " + deviceId + ", snapshotId = " + snapshotId + ")")
     askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, simulate, callback)
   } catch (err) {
-    console.log("Something went synchronously wrong when calling checkForUpdate. Caught the error, will return it in the callback.", err)
+    console.log("Something went synchronously wrong when calling checkForUpdateAndTellHubHowItWorkedOut. Caught the error, will return it in the callback.", err)
     callback(err)
   }
 
 }
 
+/**
+ * Callback format:
+ {
+ deviceId: 'deviceA',
+ snapshotId: '22',
+ updated: false,    //true if an update was needed and executed, false if update wasn't needed
+ newUpdateInterval: 30   //if given by the hub
+ }
+ */
 function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, simulate, callback) {
   //Configure the HTTP request
   const options = {
@@ -68,14 +75,26 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, simulate, callb
     }
   }
 
+  const callbackArgument = {
+    deviceId: deviceId,
+    snapshotId: snapshotId
+  }
+
+
   //Do the http request
   request(options, function(err, response, body) {
     //Parse the response
     if (err) return callback(err)
-    
+
+    if (body.updateInterval) {
+      callbackArgument.newUpdateInterval = body.updateInterval
+    }
+
     if (body.status === "noUpdateNeeded") {
+
       //Nothing to change. We are done!
-      callback(null, body)
+      callbackArgument.updated = false
+      callback(null, callbackArgument)
 
     } else if (body.status === "updateNeeded") {
       
@@ -86,7 +105,7 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, simulate, callb
       const configParams = getOptionalResponseProperty(body, "config", {})
 
       console.log("Will update device " + deviceId + " from snapshot " + snapshotId + " to " + newSnapshotId)
-      console.log("Config: " + configParams)
+      console.log("Config: ", configParams)
 
       //Execute the update
       try {
@@ -95,17 +114,34 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, simulate, callb
           if (err) {
             console.log("Update failed! ", err)
             //Oh, the update script failed! Let's tell the hub
-            tellHubHowItWorkedOut(hubUrl, deviceId, newSnapshotId, false, err.message, callback)
+            tellHubHowItWorkedOut(hubUrl, deviceId, newSnapshotId, false, err.message, function(err2) {
+              if (err2) {
+                console.log("Update failed AND I failed to notify the hub about the problem", err2)
+              }
+              callback(err)
+            })
+
+
           } else {
             console.log("Update succeeded!", scriptOutput)
             //The update script succeeded! Let's tell the hub.
-            tellHubHowItWorkedOut(hubUrl, deviceId, newSnapshotId, true, scriptOutput, callback)
+            tellHubHowItWorkedOut(hubUrl, deviceId, newSnapshotId, true, scriptOutput, function(err) {
+              callbackArgument.updated = true
+              callback(null, callbackArgument)
+            })
+
           }
         })
       } catch (err) {
         console.log("Update failed! Threw an error. ", err)
         //Oh, the update script failed! Let's tell the hub
-        tellHubHowItWorkedOut(hubUrl, deviceId, newSnapshotId, false, err.message, callback)
+        tellHubHowItWorkedOut(hubUrl, deviceId, newSnapshotId, false, err.message, function(err2) {
+          if (err2) {
+            console.log("Update failed (synchronously) AND I failed to notify the hub about the problem", err2)
+          }
+          callback(err)
+        })
+
 
       }
 
@@ -138,9 +174,18 @@ function tellHubHowItWorkedOut(hubUrl, deviceId, snapshotId, success, output, ca
     body: result
   }
 
+  if (!callback) {
+    callback = function() {}
+  }
+
   request(options, function(err, result) {
-    if (err) return callback(err)
-    callback(null, result.body)
+    if (err) {
+      console.log("An error occurred while calling /howitworkedout", err)
+      return callback(err)
+    } else {
+      console.log("Successfully called /howitworkedout")
+      callback(null, result.body)
+    }
 
   })
 }
@@ -158,7 +203,7 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, downloadType,
   const snapshotRoot = makeDir(downloadsDir, snapshotId)
 
   if (downloadType == 'zip') {
-    const downloadedFile = path.join(snapshotRoot, 'download.zip')
+    const downloadedFile = path.resolve(path.join(snapshotRoot, 'download.zip'))
 
     //Download the file
     const filePipe = request({uri: downloadUrl}).pipe(fs.createWriteStream(downloadedFile))
@@ -180,14 +225,14 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, downloadType,
     })
 
   } else if (downloadType == 'sh') {
-    const downloadedFile = path.join(snapshotRoot, 'update.sh')
+    const downloadedFile = path.resolve(path.join(snapshotRoot, 'update.sh'))
     const filePipe = request({uri: downloadUrl}).pipe(fs.createWriteStream(downloadedFile))
     filePipe.on('close', function() {
       //OK now I got my file. Execute it.
       executeUpdateScript(rootDir, downloadedFile, snapshotId, configParams, simulate, callback)
     })
   } else if (downloadType == 'js') {
-    const downloadedFile = path.join(snapshotRoot, 'update.js')
+    const downloadedFile = path.resolve(path.join(snapshotRoot, 'update.js'))
     const filePipe = request({uri: downloadUrl}).pipe(fs.createWriteStream(downloadedFile))
     filePipe.on('close', function() {
       //OK now I got my file. Execute it.
@@ -207,6 +252,7 @@ function executeUpdateScript(rootDir, updateScript, snapshotId, configParams, si
 
     const cwd = path.resolve(updateScript, "..")
     console.log("Setting cwd to " + cwd)
+    const options = {'cwd': cwd}
 
     const appsRootDir = path.resolve(rootDir, 'apps')
 
@@ -218,17 +264,16 @@ function executeUpdateScript(rootDir, updateScript, snapshotId, configParams, si
     if (simulate) {
       output = "simulate is true, so I'll just \n" +
         "pretend that I executed the " + updateScript + "\n" +
-        "and successfully updated to snapshotId " + snapshotId + ".\n" +
-        "Here is the environment I received: \n" + JSON.stringify(options.env, null, 2)
+        "and successfully updated to snapshotId " + snapshotId + "."
+
     } else if (updateScript.endsWith(".js")) {
       console.log("Executing: node " + updateScript)
-      const outputBuffer = child_process.execSync("node " + updateScript)
+      const outputBuffer = child_process.execSync("node " + updateScript, options)
       output = outputBuffer.toString()
 
     } else {
       console.log("Executing: " + updateScript)
-      options.cwd = cwd
-      const outputBuffer = child_process.execFileSync(updateScript)
+      const outputBuffer = child_process.execFileSync(updateScript, {}, options)
       output = outputBuffer.toString()
     }
 
@@ -298,6 +343,6 @@ function getOptionalResponseProperty(body, propertyName, defaultValue) {
   }
 }
 
-exports.checkForUpdate = checkForUpdate
+exports.checkForUpdateAndTellHubHowItWorkedOut = checkForUpdateAndTellHubHowItWorkedOut
 
 

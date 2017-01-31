@@ -120,9 +120,6 @@ function getDevice(deviceId) {
 }
 
 function initFixture() {
-  shouldNextUpdateScriptSucceed = true
-
-
   devices.forEach(function(device){
     initDevice(device)
   });

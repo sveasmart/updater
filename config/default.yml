@@ -3,7 +3,11 @@ hubUrl: http://localhost:3000/updater
 
 #How often the updater will poll for updates.
 #Minimum 1 second, Maximum 24 hours (86400 seconds)
+#Anything less than 1 second will be treated as 1 second.
+#Anything greater than 24 hours will be treated as 24 hours.
+#Anything invalid will be treated as 10 seconds.
 updateIntervalSeconds: 5
+
 deviceIdLength: 10
 
 #If true, it will download but not actually execute the update script.

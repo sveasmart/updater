@@ -25,7 +25,7 @@ function checkForUpdate() {
 
 function updateCheckCompleted(err, result) {
   if (err) {
-    console.log("Update check failed! ", err)
+    console.log("Update check failed! " + err.message)
   } else {
     console.log("Update check completed. ", result)
     checkUpdateInterval(result.newUpdateInterval)

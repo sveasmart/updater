@@ -49,7 +49,7 @@ function checkForUpdateAndTellHubHowItWorkedOut(rootDir, hubUrl, simulate, callb
     console.log("Checking for update from " + hubUrl + " ... (deviceId = " + deviceId + ", snapshotId = " + snapshotId + ")")
     askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, simulate, callback)
   } catch (err) {
-    console.log("Something went synchronously wrong when calling checkForUpdateAndTellHubHowItWorkedOut. Caught the error, will return it in the callback.", err)
+    console.log("Something went synchronously wrong when calling checkForUpdateAndTellHubHowItWorkedOut. Caught the error, will return it in the callback." + err)
     callback(err)
   }
 
@@ -112,9 +112,15 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, simulate, callb
         executeUpdate(rootDir, deviceId, newSnapshotId, downloadUrl, downloadType, configParams, simulate, function(err, scriptOutput) {
           //OK the update script has been executed. Let's see how it worked out.
           if (err) {
-            console.log("Update failed! ", err)
+            console.log("Update failed! " +  err.message)
             //Oh, the update script failed! Let's tell the hub
-            tellHubHowItWorkedOut(hubUrl, deviceId, newSnapshotId, false, err.message, function(err2) {
+            let output = ""
+            if (err.stdout) {
+              output = output + err.stdout.toString()
+            }
+            output = output + err.toString()
+
+            tellHubHowItWorkedOut(hubUrl, deviceId, newSnapshotId, false, output, function(err2) {
               if (err2) {
                 console.log("Update failed AND I failed to notify the hub about the problem", err2)
               }
@@ -134,9 +140,15 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, simulate, callb
           }
         })
       } catch (err) {
-        console.log("Update failed! Threw an error. ", err)
+        console.log("Update failed! Threw an error. " + err.message)
         //Oh, the update script failed! Let's tell the hub
-        tellHubHowItWorkedOut(hubUrl, deviceId, newSnapshotId, false, err.message, function(err2) {
+        let output = ""
+        if (err.stdout) {
+          output = output + err.stdout.toString()
+        }
+        output = output + err.toString()
+
+        tellHubHowItWorkedOut(hubUrl, deviceId, newSnapshotId, false, output, function(err2) {
           if (err2) {
             console.log("Update failed (synchronously) AND I failed to notify the hub about the problem", err2)
           }
@@ -232,6 +244,7 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, downloadType,
       //OK now I got my file. Execute it.
       executeUpdateScript(rootDir, downloadedFile, snapshotId, configParams, simulate, callback)
     })
+
   } else if (downloadType == 'js') {
     const downloadedFile = path.resolve(path.join(snapshotRoot, 'update.js'))
     const filePipe = request({uri: downloadUrl}).pipe(fs.createWriteStream(downloadedFile))
@@ -271,6 +284,7 @@ function executeUpdateScript(rootDir, updateScript, snapshotId, configParams, si
       console.log("Executing: node " + updateScript)
       const outputBuffer = child_process.execSync("node " + updateScript, options)
       output = outputBuffer.toString()
+      console.log("Got output: ", output)
 
     } else {
       console.log("Executing: " + updateScript)

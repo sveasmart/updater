@@ -87,7 +87,7 @@ describe('Updater', function() {
   it('The update script output should be posted to the hub', function() {
 
     return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', false).then( function() {
-     expect(testFixture.getLastLog("deviceA")).to.deep.equal({
+      expect(testFixture.getLastLog("deviceA")).to.deep.equal({
         deviceId: "deviceA",
         output: "update successful!",
         snapshotId: "1",
@@ -202,5 +202,18 @@ describe('Updater', function() {
       assert.equal(config.app1.color, "red")
     })
   })
+
+  //================================================================================
+  it.only('can receive an updateInterval change', function() {
+    testFixture.setDeviceId("deviceG")
+    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', false).should.become(
+      { 
+        deviceId: "deviceG",
+        snapshotId: "30",
+        newUpdateInterval: 120,
+        updated: true
+      }
+    )
+  })  
 
 })

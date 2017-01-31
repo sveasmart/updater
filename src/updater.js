@@ -22,7 +22,8 @@ const encoding = 'utf8'
  then it will return something like through the callback:
  {
  deviceId: 'deviceA',
- snapshotId: '22',
+ snapshotId: '22',  //whatever snapshotId we ended up at
+ output: 'updating... done!' //whatever the update script outputed
  updated: false,    //true if an update was needed and executed, false if update wasn't needed
  newUpdateInterval: 30   //if given by the hub
  }
@@ -80,7 +81,6 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, simulate, callb
     snapshotId: snapshotId
   }
 
-
   //Do the http request
   request(options, function(err, response, body) {
     //Parse the response
@@ -127,6 +127,7 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, simulate, callb
             //The update script succeeded! Let's tell the hub.
             tellHubHowItWorkedOut(hubUrl, deviceId, newSnapshotId, true, scriptOutput, function(err) {
               callbackArgument.updated = true
+              callbackArgument.snapshotId = newSnapshotId
               callback(null, callbackArgument)
             })
 

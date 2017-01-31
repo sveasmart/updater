@@ -47,6 +47,12 @@ const devices = [
         color: 'red'
       }
     }
+  },
+
+  {
+    deviceId: "deviceG",
+    latestSnapshotId: "30",
+    newUpdateInterval: 120
   }
 ]
 
@@ -130,23 +136,25 @@ function initFixture() {
     .reply(200, function(uri, requestBody) {
       const query = url.parse(uri, true).query
       const device = getDevice(query.deviceId)
+      const response = {}
+
+      if (device.newUpdateInterval) {
+        response.updateInterval = device.newUpdateInterval
+      }
+
       if (query.snapshotId == device.latestSnapshotId) {
-        return {
-          status: 'noUpdateNeeded'
-        }
+        response.status = 'noUpdateNeeded'
       } else {
-        const response = {
-          status: 'updateNeeded',
-          snapshotId: device.latestSnapshotId,
-          downloadUrl: getFileUrl(device),
-          downloadType: device.downloadType
-        }
+        response.status = 'updateNeeded'
+        response.snapshotId = device.latestSnapshotId
+        response.downloadUrl = getFileUrl(device)
+        response.downloadType = device.downloadType
         if (device.config) {
           response.config = device.config
         }
-        return response
-
       }
+      return response
+
     })
 
   nock('http://fakeupdater.com')

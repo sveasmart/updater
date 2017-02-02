@@ -32,7 +32,7 @@ const encoding = 'utf8'
  @param {string} hubUrl - the base url of the updater hub. For example http://hub.updater.eu. No trailing slash.
  @param {bool} simulate - if true, I will only pretend to execute local update scripts.
  */
-function checkForUpdateAndTellHubHowItWorkedOut(rootDir, hubUrl, simulate, callback) {
+function checkForUpdateAndTellHubHowItWorkedOut(rootDir, hubUrl, updateScriptTimeoutSeconds, simulate, callback) {
   try {
     //Read the deviceId from file
     const deviceIdFile = path.join(rootDir, "device-id")
@@ -47,7 +47,7 @@ function checkForUpdateAndTellHubHowItWorkedOut(rootDir, hubUrl, simulate, callb
 
     //Go check if an update is needed
     console.log("Checking for update from " + hubUrl + " ... (deviceId = " + deviceId + ", snapshotId = " + snapshotId + ")")
-    askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, simulate, callback)
+    askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, updateScriptTimeoutSeconds, simulate, callback)
   } catch (err) {
     console.log("Something went synchronously wrong when calling checkForUpdateAndTellHubHowItWorkedOut. Caught the error, will return it in the callback." + err)
     callback(err)
@@ -64,7 +64,7 @@ function checkForUpdateAndTellHubHowItWorkedOut(rootDir, hubUrl, simulate, callb
  newUpdateInterval: 30   //if given by the hub
  }
  */
-function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, simulate, callback) {
+function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, updateScriptTimeoutSeconds, simulate, callback) {
   //Configure the HTTP request
   const options = {
     uri: hubUrl + "/updateme",
@@ -109,7 +109,7 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, simulate, callb
 
       //Execute the update
       try {
-        executeUpdate(rootDir, deviceId, newSnapshotId, downloadUrl, downloadType, configParams, simulate, function(err, scriptOutput) {
+        executeUpdate(rootDir, deviceId, newSnapshotId, downloadUrl, downloadType, configParams, updateScriptTimeoutSeconds, simulate, function(err, scriptOutput) {
           //OK the update script has been executed. Let's see how it worked out.
           if (err) {
             console.log("Update failed! " +  err.message)
@@ -210,7 +210,7 @@ If all goes well, the callback is called with the output from the script.
 If anything goes wrong, the callback is called with an error.
 If simulate == true then I'll just pretend everything worked out, and not run anything.
 */
-function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, downloadType, configParams, simulate, callback) {
+function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, downloadType, configParams, updateScriptTimeoutSeconds, simulate, callback) {
   //Create the download folder for this zip file
   const downloadsDir = makeDir(rootDir, 'downloads')
   const snapshotRoot = makeDir(downloadsDir, snapshotId)
@@ -230,7 +230,7 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, downloadType,
         const updateScript = findUpdateScript(snapshotRoot)
 
         if (updateScript) {
-          executeUpdateScript(rootDir, updateScript, snapshotId, configParams, simulate, callback)
+          executeUpdateScript(rootDir, updateScript, snapshotId, configParams, updateScriptTimeoutSeconds, simulate, callback)
         } else {
           callback(new Error("The zip file didn't contain update.sh!"))
         }
@@ -242,7 +242,7 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, downloadType,
     const filePipe = request({uri: downloadUrl}).pipe(fs.createWriteStream(downloadedFile))
     filePipe.on('close', function() {
       //OK now I got my file. Execute it.
-      executeUpdateScript(rootDir, downloadedFile, snapshotId, configParams, simulate, callback)
+      executeUpdateScript(rootDir, downloadedFile, snapshotId, configParams, updateScriptTimeoutSeconds, simulate, callback)
     })
 
   } else if (downloadType == 'js') {
@@ -250,7 +250,7 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, downloadType,
     const filePipe = request({uri: downloadUrl}).pipe(fs.createWriteStream(downloadedFile))
     filePipe.on('close', function() {
       //OK now I got my file. Execute it.
-      executeUpdateScript(rootDir, downloadedFile, snapshotId, configParams, simulate, callback)
+      executeUpdateScript(rootDir, downloadedFile, snapshotId, configParams, updateScriptTimeoutSeconds, simulate, callback)
     })
   } else {
     callback(new Error("Invalid downloadType: '" + downloadType + "'. Should be 'zip' or 'sh'."))
@@ -258,7 +258,7 @@ function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, downloadType,
 
 }
 
-function executeUpdateScript(rootDir, updateScript, snapshotId, configParams, simulate, callback) {
+function executeUpdateScript(rootDir, updateScript, snapshotId, configParams, updateScriptTimeoutSeconds, simulate, callback) {
   try {
     child_process.execSync("chmod a+x " + updateScript)
 
@@ -266,7 +266,10 @@ function executeUpdateScript(rootDir, updateScript, snapshotId, configParams, si
 
     const cwd = path.resolve(updateScript, "..")
     console.log("Setting cwd to " + cwd)
-    const options = {'cwd': cwd}
+    const options = {
+      'cwd': cwd,
+      'timeout': updateScriptTimeoutSeconds * 1000
+    }
 
     const appsRootDir = path.resolve(rootDir, 'apps')
 
@@ -281,13 +284,13 @@ function executeUpdateScript(rootDir, updateScript, snapshotId, configParams, si
         "and successfully updated to snapshotId " + snapshotId + "."
 
     } else if (updateScript.endsWith(".js")) {
-      console.log("Executing: node " + updateScript)
+      console.log("Executing: node " + updateScript + " (timeout = " + updateScriptTimeoutSeconds + " seconds)")
       const outputBuffer = child_process.execSync("node " + updateScript, options)
       output = outputBuffer.toString()
       console.log("Got output: ", output)
 
     } else {
-      console.log("Executing: " + updateScript)
+      console.log("Executing: " + updateScript + " (timeout = " + updateScriptTimeoutSeconds + " seconds)")
       const outputBuffer = child_process.execFileSync(updateScript, {}, options)
       output = outputBuffer.toString()
     }

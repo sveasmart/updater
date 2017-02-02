@@ -44,7 +44,7 @@ describe('Updater', function() {
   //================================================================================
   it('If updaterUrl is invalid, update should fail', function() {
 
-    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://totally.invalid.url', false).should.be.rejected
+    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://totally.invalid.url', 1, false).should.be.rejected
   })
 
   //================================================================================
@@ -53,7 +53,7 @@ describe('Updater', function() {
     testFixture.setSnapshotId("1")
 
     //Call the updater
-    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', false).should.become(
+    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', 1, false).should.become(
       {
         deviceId: "deviceA",
         snapshotId: "1",
@@ -66,7 +66,7 @@ describe('Updater', function() {
   it('If update was needed, it should be downloaded and executed.', function() {
 
 
-    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', false).then(function() {
+    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', 1, false).then(function() {
       //Ensure that it created a snapshot-id file
       assert.isOk(fs.existsSync("/updatertest/snapshot-id"))
       const snapshotId = fs.readFileSync("/updatertest/snapshot-id")
@@ -86,7 +86,7 @@ describe('Updater', function() {
   //================================================================================
   it('The update script output should be posted to the hub', function() {
 
-    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', false).then( function() {
+    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', 1, false).then( function() {
       expect(testFixture.getLastLog("deviceA")).to.deep.equal({
         deviceId: "deviceA",
         output: "update successful!",
@@ -104,10 +104,10 @@ describe('Updater', function() {
     testFixture.shouldNextUpdateScriptSucceed = false
 
 
-    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', false).should.be.rejected.then( function() {
+    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', 1, false).should.be.rejected.then( function() {
       expect(testFixture.getLastLog("deviceA")).to.deep.equal({
         deviceId: "deviceA",
-        output: "update failed!",
+        output: "Error: update failed!",
         snapshotId: "1",
         success: "false"
       })
@@ -119,7 +119,7 @@ describe('Updater', function() {
     testFixture.setSnapshotId("0")
     testFixture.shouldNextUpdateScriptSucceed = false
 
-    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', false).should.be.rejected.then( function() {
+    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', 1, false).should.be.rejected.then( function() {
       //Ensure that snapshot-id is unchanged
       assert.equal(testFixture.getSnapshotId(), "0")
     })
@@ -127,7 +127,7 @@ describe('Updater', function() {
 
   //================================================================================
   it('should set environment variable "app_root" when running update scripts', function() {
-    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', false).then(function() {
+    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', 1, false).then(function() {
       //Ensure that the environment variable was set
       assert.isOk(process.env)
       assert.equal(process.env.apps_root, "/updatertest/apps")
@@ -137,7 +137,7 @@ describe('Updater', function() {
   //================================================================================
   it('should set the correct working directory when running update scripts', function() {
 
-    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', false).then( function() {
+    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', 1, false).then( function() {
       //Ensure that the environment variable was set
       assert.isOk(updater.lastExecutedCommandOptions.cwd)
       assert.equal(updater.lastExecutedCommandOptions.cwd, "/updatertest/downloads/1")
@@ -149,13 +149,13 @@ describe('Updater', function() {
     testFixture.setDeviceId("deviceC") //This one has a ZIP file with no update.sh inside!
     testFixture.setSnapshotId(1)
 
-    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', false).should.be.rejected.then(function() {
+    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', 1, false).should.be.rejected.then(function() {
       //No new snapshot should have been generated.
       assert.equal(testFixture.getSnapshotId(), 1)
       //And the updater should have reported a failure to the hub.
       expect(testFixture.getLastLog("deviceC")).to.deep.equal({
         deviceId: "deviceC",
-        output: "The zip file didn't contain update.sh!",
+        output: "Error: The zip file didn't contain update.sh!",
         snapshotId: "2",
         success: "false"
       })
@@ -165,7 +165,7 @@ describe('Updater', function() {
   //================================================================================
   it('If update.sh is under a subdirectory in the ZIP, it should still be found.', function() {
     testFixture.setDeviceId("deviceD")
-    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', false).then(function() {
+    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', 1, false).then(function() {
       //Ensure that update.sh was executed
       assert.equal(updater.lastExecutedCommand, "/updatertest/downloads/5/stuff/update.sh")
     })
@@ -174,7 +174,7 @@ describe('Updater', function() {
   //================================================================================
   it('can download an .sh file directly.', function() {
     testFixture.setDeviceId("deviceE")
-    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', false).then(function() {
+    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', 1, false).then(function() {
       //Ensure that update.sh was executed
       assert.equal(updater.lastExecutedCommand, "/updatertest/downloads/7/update.sh")
     })
@@ -183,7 +183,7 @@ describe('Updater', function() {
   //================================================================================
   it('can execute a js file', function() {
     testFixture.setDeviceId("deviceF")
-    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', false).then(function() {
+    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', 1, false).then(function() {
       //Ensure that update.js was executed
       assert.equal(updater.lastExecutedCommand, "node /updatertest/downloads/8/update.js")
     })
@@ -192,7 +192,7 @@ describe('Updater', function() {
   //================================================================================
   it('can receive a nested config', function() {
     testFixture.setDeviceId("deviceF")
-    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', false).then(function(err) {
+    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', 1, false).then(function(err) {
 
       //Ensure that update.js was executed
       assert.equal(updater.lastExecutedCommand, "node /updatertest/downloads/8/update.js")
@@ -204,9 +204,9 @@ describe('Updater', function() {
   })
 
   //================================================================================
-  it.only('can receive an updateInterval change', function() {
+  it('can receive an updateInterval change', function() {
     testFixture.setDeviceId("deviceG")
-    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', false).should.become(
+    return checkForUpdateAndTellHubHowItWorkedOut("/updatertest", 'http://fakeupdater.com', 1, false).should.become(
       { 
         deviceId: "deviceG",
         snapshotId: "30",

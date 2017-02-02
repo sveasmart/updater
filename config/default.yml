@@ -12,3 +12,8 @@ deviceIdLength: 10
 
 #If true, it will download but not actually execute the update script.
 simulate: false
+
+#If an update script takes longer than this, it will be interrupted.
+#Max 1 hour, minimum 1 second.
+#Default is 30 minutes. If any update takes longer than that, then something is DEFINITELY wrong!
+updateScriptTimeoutSeconds: 1800

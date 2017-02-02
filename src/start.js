@@ -1,3 +1,5 @@
+const util = require('./util')
+
 const config = require('config')
 const fs = require('fs')
 const path = require('path')
@@ -5,21 +7,22 @@ const path = require('path')
 const updater = require('./updater')
 const idGenerator = require('./id-generator')
 
+const minUpdateIntervalSeconds = 1
+const maxUpdateIntervalSeconds = 60*60*24 //max 24 hours
+
 const rootDir = config.get('rootDir')
 const hubUrl = config.get('hubUrl')
-var updateIntervalSeconds = config.get('updateIntervalSeconds')
+var updateIntervalSeconds = util.getConfigWithMinMax('updateIntervalSeconds', minUpdateIntervalSeconds, maxUpdateIntervalSeconds)
 const deviceIdLength = config.get('deviceIdLength')
 const simulate = config.get('simulate')
-
-const maxUpdateIntervalSeconds = 60 * 60 * 24  //max 24 hours
-const minUpdateIntervalSeconds = 1
+const updateScriptTimeoutSeconds = util.getConfigWithMinMax('updateScriptTimeoutSeconds', 1, (60*60)) //max 1 hour
 
 if (simulate) {
   console.log("simulate == true, so I will only pretend to execute local update scripts.")
 }
 
 function checkForUpdate() {
-  updater.checkForUpdateAndTellHubHowItWorkedOut(rootDir, hubUrl, simulate, updateCheckCompleted)
+  updater.checkForUpdateAndTellHubHowItWorkedOut(rootDir, hubUrl, updateScriptTimeoutSeconds, simulate, updateCheckCompleted)
 }
 
 
@@ -47,7 +50,7 @@ function checkUpdateInterval(newUpdateInterval) {
       updateIntervalSeconds = newUpdateInterval
       console.log("Setting update interval to " + updateIntervalSeconds + " seconds")
     } catch (err) {
-      console.log("Something went wrong while parsing newUpdateInterval (ignoring it and moving on)", newUpdateInterval, err2)
+      console.log("Something went wrong while parsing newUpdateInterval (ignoring it and moving on)", newUpdateInterval, err)
     }
 
   }

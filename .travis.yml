@@ -3,8 +3,11 @@ language: node_js
 node_js:
   - "6.2"
 
+
 notifications:
-  slack: sveasolar:SlVckMxaT9VUoDiPEA5mcutq
+  email: false
+  slack:
+    rooms:
+    - sveasolar:SlVckMxaT9VUoDiPEA5mcutq#code-builds
     on_success: change
     on_failure: always
-  email: false

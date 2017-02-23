@@ -1,5 +1,5 @@
 const util = require('./util')
-
+const time = require('./time')
 const config = require('config')
 const fs = require('fs')
 const path = require('path')
@@ -73,6 +73,11 @@ function createRootDirIfMissing() {
   }
 }
 
+function setSystemClock(){
+  time.syncSystemClockWithServer(hubUrl)
+}
+
+setSystemClock() // TODO: Wait for this to return befor continuing?
 createRootDirIfMissing()
 generateDeviceIdIfMissing()
 checkForUpdate()

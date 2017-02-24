@@ -73,7 +73,8 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, updateScriptTim
     qs: {
       'deviceId': deviceId,
       'snapshotId': snapshotId
-    }
+    },
+    timeout: 5000
   }
 
   const callbackArgument = {

@@ -8,14 +8,14 @@ const updater = require('./updater')
 const idGenerator = require('./id-generator')
 
 const minUpdateIntervalSeconds = 1
-const maxUpdateIntervalSeconds = 60*60*24 //max 24 hours
+const maxUpdateIntervalSeconds = 60 * 60 * 24 //max 24 hours
 
 const rootDir = config.get('rootDir')
 const hubUrl = config.get('hubUrl')
 var updateIntervalSeconds = util.getConfigWithMinMax('updateIntervalSeconds', minUpdateIntervalSeconds, maxUpdateIntervalSeconds)
 const deviceIdLength = config.get('deviceIdLength')
 const simulate = config.get('simulate')
-const updateScriptTimeoutSeconds = util.getConfigWithMinMax('updateScriptTimeoutSeconds', 1, (60*60)) //max 1 hour
+const updateScriptTimeoutSeconds = util.getConfigWithMinMax('updateScriptTimeoutSeconds', 1, (60 * 60)) //max 1 hour
 
 if (simulate) {
   console.log("simulate == true, so I will only pretend to execute local update scripts.")
@@ -45,18 +45,26 @@ try {
   buttons = null
 }
 
-function showTextOnDisplay(text){
+function showTextOnDisplay(text) {
   console.log(text);
-  if( display ){
+  if (display) {
     display.text(text);
   }
 }
 
+var networkWasDown = false
+
 function updateCheckCompleted(err, result) {
   if (err) {
+    networkWasDown = true
     showTextOnDisplay("Network Down? - No contact with server");
     console.log("Update check failed! " + err.message)
   } else {
+    if (networkWasDown) {
+      networkWasDown = false
+      showTextOnDisplay("Network back up again")
+    }
+
     console.log("Update check completed. ", result)
     checkUpdateInterval(result.newUpdateInterval)
   }
@@ -100,7 +108,7 @@ function createRootDirIfMissing() {
   }
 }
 
-function setSystemClock(){
+function setSystemClock() {
   time.syncSystemClockWithServer(hubUrl)
 }
 

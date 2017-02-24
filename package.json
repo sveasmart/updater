@@ -18,21 +18,22 @@
   },
   "homepage": "https://github.com/sveasmart/updater#readme",
   "devDependencies": {
-    "chai": "^3.5.0",
-    "mocha": "^3.2.0",
-    "mock-fs": "^3.12.1",
-    "nock": "^9.0.2",
-    "archiver": "^1.3.0",
-    "mockery": "^2.0.0",
-    "nock-exec": "^0.1.0"
+    "chai": "3.5.0",
+    "mocha": "3.2.0",
+    "mock-fs": "3.12.1",
+    "nock": "9.0.2",
+    "archiver": "1.3.0",
+    "mockery": "2.0.0",
+    "nock-exec": "0.1.0"
   },
   "dependencies": {
-    "chai-as-promised": "^6.0.0",
-    "config": "^1.24.0",
-    "extract-zip": "^1.6.0",
-    "js-yaml": "^3.7.0",
-    "promise": "^7.1.1",
-    "request": "^2.79.0",
-    "timeout-as-promise": "^1.0.0"
+    "adafruit-mcp23008-ssd1306-node-driver": "1.0.15",
+    "chai-as-promised": "6.0.0",
+    "config": "1.24.0",
+    "extract-zip": "1.6.0",
+    "js-yaml": "3.7.0",
+    "promise": "7.1.1",
+    "request": "2.79.0",
+    "timeout-as-promise": "1.0.0"
   }
 }

@@ -77,7 +77,7 @@ function setSystemClock(){
   time.syncSystemClockWithServer(hubUrl)
 }
 
-setSystemClock() // TODO: Wait for this to return befor continuing?
+setSystemClock()
 createRootDirIfMissing()
 generateDeviceIdIfMissing()
 checkForUpdate()

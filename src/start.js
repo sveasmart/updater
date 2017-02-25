@@ -25,30 +25,25 @@ function checkForUpdate() {
   updater.checkForUpdateAndTellHubHowItWorkedOut(rootDir, hubUrl, updateScriptTimeoutSeconds, simulate, updateCheckCompleted)
 }
 
-let display;
+
+var display = null
 
 try {
   const adafruit = require('adafruit-mcp23008-ssd1306-node-driver')
   if (adafruit.hasDriver()) {
     console.log("Adafruit is available, so this device appears to have a display :)")
     display = new adafruit.DisplayDriver()
-    buttons = new adafruit.ButtonDriver()
   } else {
     console.log("Adafruit is not available, so we'll fake the display using the console")
-    display = new adafruit.FakeDisplayDriver()
-    buttons = new adafruit.FakeButtonDriver()
   }
-
 } catch (err) {
   console.log("Failed to load Adafruit, so we'll fake the display using the console" + err)
-  display = null
-  buttons = null
 }
 
-function showTextOnDisplay(text) {
-  console.log(text);
+function showTextOnDisplay(texts) {
+  console.log(texts);
   if (display) {
-    display.text(text);
+    display.texts(texts);
   }
 }
 
@@ -57,12 +52,12 @@ var networkWasDown = false
 function updateCheckCompleted(err, result) {
   if (err) {
     networkWasDown = true
-    showTextOnDisplay("Network Down? - No contact with server");
+    showTextOnDisplay(["Network Down?", "No contact", "with server"]);
     console.log("Update check failed! " + err.message)
   } else {
     if (networkWasDown) {
       networkWasDown = false
-      showTextOnDisplay("Network back up again")
+      showTextOnDisplay(["Network back","up again"])
     }
 
     console.log("Update check completed. ", result)

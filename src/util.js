@@ -11,4 +11,9 @@ function getConfigWithMinMax(paramName, min, max) {
   return value
 }
 
+function getMyVersionNumber() {
+  return "v" + __dirname.split("/").pop().split("-").pop()
+}
+
 exports.getConfigWithMinMax = getConfigWithMinMax
+exports.getMyVersionNumber = getMyVersionNumber

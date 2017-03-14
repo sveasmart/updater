@@ -3,6 +3,7 @@ const fs = require("fs")
 const path = require('path')
 const child_process = require('child_process')
 const extract = require('extract-zip')
+const util = require('./util')
 
 const encoding = 'utf8'
 
@@ -45,9 +46,11 @@ function checkForUpdateAndTellHubHowItWorkedOut(rootDir, hubUrl, updateScriptTim
       snapshotId = fs.readFileSync(snapshotIdFile, encoding).toString()
     }
 
+    let updaterVersion = util.getMyVersionNumber()
+
     //Go check if an update is needed
     console.log("Checking for update from " + hubUrl + " ... (deviceId = " + deviceId + ", snapshotId = " + snapshotId + ")")
-    askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, updateScriptTimeoutSeconds, simulate, callback)
+    askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, updaterVersion, updateScriptTimeoutSeconds, simulate, callback)
   } catch (err) {
     console.log("Something went synchronously wrong when calling checkForUpdateAndTellHubHowItWorkedOut. Caught the error, will return it in the callback." + err)
     callback(err)
@@ -64,7 +67,7 @@ function checkForUpdateAndTellHubHowItWorkedOut(rootDir, hubUrl, updateScriptTim
  newUpdateInterval: 30   //if given by the hub
  }
  */
-function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, updateScriptTimeoutSeconds, simulate, callback) {
+function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, updaterVersion, updateScriptTimeoutSeconds, simulate, callback) {
   //Configure the HTTP request
   const options = {
     uri: hubUrl + "/updateme",
@@ -72,7 +75,8 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, updateScriptTim
     method: 'GET',
     qs: {
       'deviceId': deviceId,
-      'snapshotId': snapshotId
+      'snapshotId': snapshotId,
+      'updaterVersion' : updaterVersion
     },
     timeout: 5000
   }

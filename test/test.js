@@ -24,6 +24,8 @@ var checkForUpdateAndTellHubHowItWorkedOut = null
 
 const testUtil = require('./test-util')
 const testFixture = require('./test-fixture')
+const util = require('../src/util')
+
 
 //An in-memory integration test that checks if the updater works, end-to-end.
 //Both the file system and http requests are mocked, so everything happens in-memory.
@@ -215,5 +217,9 @@ describe('Updater', function() {
       }
     )
   })  
+  
+  it('can see version number from path', function() {
+    assert.equal(util.getVersionNumberFromPath("/bla/yeah/updater-1.0.5"), "v1.0.5")
+  })
 
 })

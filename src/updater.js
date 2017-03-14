@@ -49,7 +49,7 @@ function checkForUpdateAndTellHubHowItWorkedOut(rootDir, hubUrl, updateScriptTim
     let updaterVersion = util.getMyVersionNumber()
 
     //Go check if an update is needed
-    console.log("Checking for update from " + hubUrl + " ... (deviceId = " + deviceId + ", snapshotId = " + snapshotId + ")")
+    console.log("Checking for update from " + hubUrl + " ... (deviceId = " + deviceId + ", snapshotId = " + snapshotId + ", updaterVersion = " + updaterVersion + ")")
     askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, updaterVersion, updateScriptTimeoutSeconds, simulate, callback)
   } catch (err) {
     console.log("Something went synchronously wrong when calling checkForUpdateAndTellHubHowItWorkedOut. Caught the error, will return it in the callback." + err)

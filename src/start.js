@@ -50,6 +50,7 @@ function showTextOnDisplay(texts) {
 var networkWasDown = false
 
 function updateCheckCompleted(err, result) {
+  // TODO: Check if the error is really about network connection problem and only show "Network Down?" in those cases
   if (err) {
     networkWasDown = true
     showTextOnDisplay(["Network Down?", "No contact", "with server"]);

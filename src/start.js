@@ -54,7 +54,6 @@ function truncate(string, toLength) {
 }
 
 function updateCheckCompleted(err, result) {
-  // TODO: Check if the error is really about network connection problem and only show "Network Down?" in those cases
   if (err) {
     networkWasDown = true
 
@@ -73,7 +72,7 @@ function updateCheckCompleted(err, result) {
   } else {
     if (networkWasDown) {
       networkWasDown = false
-      showTextOnDisplay(["Everything OK"])
+      showTextOnDisplay(["Network OK"])
     }
 
     console.log("Update check completed. ", result)

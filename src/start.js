@@ -42,8 +42,13 @@ try {
 
 function showTextOnDisplay(texts) {
   console.log(texts);
+
   if (display) {
-    display.texts(texts);
+    try {
+      display.setTexts(texts);
+    } catch (err) {
+      console.log("Failed to update display. Will ignore and move on", err)
+    }
   }
 }
 

@@ -89,7 +89,11 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, updaterVersion,
   //Do the http request
   request(options, function(err, response, body) {
     //Parse the response
-    if (err) return callback(err)
+    if (err) {
+      err.networkError = true
+      console.log("Creating a networkError", err)
+      return callback(err)
+    }
 
     if (body.updateInterval) {
       callbackArgument.newUpdateInterval = body.updateInterval
@@ -129,6 +133,8 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, updaterVersion,
               if (err2) {
                 console.log("Update failed AND I failed to notify the hub about the problem", err2)
               }
+              err.updateError = true
+              console.log("Creating an updateError", err)
               callback(err)
             })
 

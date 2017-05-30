@@ -41,8 +41,7 @@ try {
 }
 
 function showTextOnDisplay(texts) {
-  console.log(texts);
-
+  console.log("SHOWING ON DISPLAY: " + texts);
   if (display) {
     try {
       display.setTexts(texts);
@@ -54,15 +53,30 @@ function showTextOnDisplay(texts) {
 
 var networkWasDown = false
 
+function truncate(string, toLength) {
+  return string.substring(0, toLength)
+}
+
 function updateCheckCompleted(err, result) {
   if (err) {
     networkWasDown = true
-    showTextOnDisplay(["Network Down?", "No contact", "with server"]);
-    console.log("Update check failed! " + err.message)
+
+    let row1 = "Error"
+    if (err.networkError == true) {
+      row1 = "Network error"
+    }
+    if (err.updateError == true) {
+      row1 = "Update error"
+    }
+
+    showTextOnDisplay([row1, truncate(err.message, 16*6)]);
+
+    console.log(row1 + ": " + err.message)
+    //console.log(err)
   } else {
     if (networkWasDown) {
       networkWasDown = false
-      showTextOnDisplay(["Network back","up again"])
+      showTextOnDisplay(["Network OK"])
     }
 
     console.log("Update check completed. ", result)

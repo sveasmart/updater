@@ -40,15 +40,30 @@ try {
   console.log("Failed to load Adafruit, so we'll fake the display using the console" + err)
 }
 
-function showTextOnDisplay(texts) {
+function showTextOnDisplay(text) {
   console.log("SHOWING ON DISPLAY: " + texts);
   if (display) {
     try {
-      display.setTexts(texts);
+      display.clear()
+      display.writeText(text, 0, 0, true)
     } catch (err) {
       console.log("Failed to update display. Will ignore and move on", err)
     }
   }
+}
+
+function showErrorOnDisplay(errorType, errorMessage) {
+  console.log("SHOWING ON DISPLAY: " + errorType + "\n" + errorMessage);
+  if (display) {
+    try {
+      display.clear()
+      display.writeText(errorType, 0, 0, false)
+      display.writeText(errorMessage, 0, 1, true)
+    } catch (err) {
+      console.log("Failed to update display. Will ignore and move on", err)
+    }
+  }
+
 }
 
 var networkWasDown = false
@@ -61,22 +76,19 @@ function updateCheckCompleted(err, result) {
   if (err) {
     networkWasDown = true
 
-    let row1 = "Error"
+    let errorType = "Error"
     if (err.networkError == true) {
-      row1 = "Network error"
+      errorType = "Network error"
     }
     if (err.updateError == true) {
-      row1 = "Update error"
+      errorType = "Update error"
     }
+    showErrorOnDisplay(errorType, err.message)
 
-    showTextOnDisplay([row1, truncate(err.message, 16*6)]);
-
-    console.log(row1 + ": " + err.message)
-    //console.log(err)
   } else {
     if (networkWasDown) {
       networkWasDown = false
-      showTextOnDisplay(["Network OK"])
+      showTextOnDisplay("Network OK")
     }
 
     console.log("Update check completed. ", result)

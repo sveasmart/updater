@@ -27,7 +27,7 @@
     "nock-exec": "0.1.0"
   },
   "dependencies": {
-    "adafruit-mcp23008-ssd1306-node-driver": "2.0.2",
+    "adafruit-mcp23008-ssd1306-node-driver": "2.0.4",
     "chai-as-promised": "6.0.0",
     "config": "1.24.0",
     "extract-zip": "1.6.0",

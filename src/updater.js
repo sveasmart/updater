@@ -32,8 +32,9 @@ const encoding = 'utf8'
  @param {string} rootDir - the root dir that contains (or will contain) device-id, snapshot-id, apps, and downloads. For example "/home"
  @param {string} hubUrl - the base url of the updater hub. For example http://hub.updater.eu. No trailing slash.
  @param {bool} simulate - if true, I will only pretend to execute local update scripts.
+ @param isUpdatingFunction - if given, this function is called with boolean true when an update is in progress, and false when not.
  */
-function checkForUpdateAndTellHubHowItWorkedOut(rootDir, hubUrl, updateScriptTimeoutSeconds, simulate, callback) {
+function checkForUpdateAndTellHubHowItWorkedOut(rootDir, hubUrl, updateScriptTimeoutSeconds, simulate, isUpdatingFunction, callback) {
   try {
     //Read the deviceId from file
     const deviceIdFile = path.join(rootDir, "device-id")
@@ -50,7 +51,7 @@ function checkForUpdateAndTellHubHowItWorkedOut(rootDir, hubUrl, updateScriptTim
 
     //Go check if an update is needed
     console.log("Checking for update from " + hubUrl + " ... (deviceId = " + deviceId + ", snapshotId = " + snapshotId + ", updaterVersion = " + updaterVersion + ")")
-    askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, updaterVersion, updateScriptTimeoutSeconds, simulate, callback)
+    askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, updaterVersion, updateScriptTimeoutSeconds, simulate, isUpdatingFunction, callback)
   } catch (err) {
     console.log("Something went synchronously wrong when calling checkForUpdateAndTellHubHowItWorkedOut. Caught the error, will return it in the callback." + err)
     callback(err)
@@ -67,7 +68,7 @@ function checkForUpdateAndTellHubHowItWorkedOut(rootDir, hubUrl, updateScriptTim
  newUpdateInterval: 30   //if given by the hub
  }
  */
-function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, updaterVersion, updateScriptTimeoutSeconds, simulate, callback) {
+function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, updaterVersion, updateScriptTimeoutSeconds, simulate, isUpdatingFunction, callback) {
   //Configure the HTTP request
   const options = {
     uri: hubUrl + "/updateme",
@@ -116,9 +117,18 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, updaterVersion,
       console.log("Will update device " + deviceId + " from snapshot " + snapshotId + " to " + newSnapshotId)
       console.log("Config: ", configParams)
 
+      if (isUpdatingFunction) {
+        isUpdatingFunction(true)
+      }
+
       //Execute the update
       try {
         executeUpdate(rootDir, deviceId, newSnapshotId, downloadUrl, downloadType, configParams, updateScriptTimeoutSeconds, simulate, function(err, scriptOutput) {
+
+          if (isUpdatingFunction) {
+            isUpdatingFunction(false)
+          }
+
           //OK the update script has been executed. Let's see how it worked out.
           if (err) {
             console.log("Update failed! " +  err.message)
@@ -151,6 +161,10 @@ function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, updaterVersion,
           }
         })
       } catch (err) {
+        if (isUpdatingFunction) {
+          isUpdatingFunction(false)
+        }
+
         console.log("Update failed! Threw an error. " + err.message)
         //Oh, the update script failed! Let's tell the hub
         let output = ""

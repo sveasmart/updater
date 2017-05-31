@@ -1,5 +1,5 @@
 //Contains all the icky test setup stuff,
-//so that test.js can focus on the business logic
+//so that updater-test.js can focus on the business logic
 
 const chai = require('chai')
 const assert = chai.assert

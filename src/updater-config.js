@@ -29,7 +29,7 @@ exports.loadConfig = function() {
 
     displayRpcPort: config.get("displayRpcPort"),
     mainDisplayTab: config.get("mainDisplayTab"),
-    networkInfoDisplayTab:config.get("networkInfoDisplayTab")
+    networkInfoDisplayTab: config.get("networkInfoDisplayTab")
   }
 }
 

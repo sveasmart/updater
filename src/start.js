@@ -129,7 +129,7 @@ const options = {
 }
 const updater = new Updater(config.rootDir, config.hubUrl, options)
 
-const display = new DisplayClient(deviceId, config.displayRpcPort, config.mainDisplayTab, true)
+const display = new DisplayClient(deviceId, config.displayRpcPort, config.mainDisplayTab, config.networkInfoDisplayTab, true)
 
 display.showDeviceId()
 

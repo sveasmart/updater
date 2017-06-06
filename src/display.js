@@ -3,7 +3,7 @@ const ProgressBar = require('./progress-bar')
 const callDisplayOverRpc = require('./display-util').callDisplayOverRpc
 
 class Display {
-  constructor(deviceId, displayRpcPort, mainDisplayTab, logCalls = true) {
+  constructor(deviceId, displayRpcPort, mainDisplayTab, networkInfoDisplayTab, logCalls = true) {
     this.deviceId = deviceId
     console.assert(deviceId, "missing deviceId param")
 
@@ -13,29 +13,43 @@ class Display {
     this.mainDisplayTab = mainDisplayTab
     console.assert(mainDisplayTab, "missing mainDisplayTab param")
 
+    this.networkInfoDisplayTab = networkInfoDisplayTab
+    console.assert(networkInfoDisplayTab, "missing networkInfoDisplayTab param")
+
     this.logCalls = logCalls
 
     this.mainTabColumn = 8
 
     const progressBarRow = 1
-    this.progressBar = new ProgressBar(this.displayRpcPort, progressBarRow, this.mainTabColumn, 0, "", this.logCalls)
+    this.progressBar = new ProgressBar(this.displayRpcPort, progressBarRow, this.mainTabColumn, "", this.logCalls)
   }
 
   showNetworkOk() {
     this._writeLineOnMainTab(0, "Network")
     this._writeLineOnMainTab(1, "OK")
+
+    this._call("setTexts", [["Network OK"], this.networkInfoDisplayTab ])
+
     this.showDeviceId()
   }
 
   showNetworkError(err) {
     this._writeLineOnMainTab(0, "Network")
     this._writeLineOnMainTab(1, "ERROR")
+
+    this._call("setTexts", [["Network ERROR"], this.networkInfoDisplayTab ])
+    this._call("writeText", [err.message, 0, 1, true, this.networkInfoDisplayTab ])
+
     this.showDeviceId()
   }
 
   showUpdateError(err) {
     this._writeLineOnMainTab(0, "Update")
     this._writeLineOnMainTab(1, "ERROR")
+
+    this._call("setTexts", [["Update ERROR"], this.networkInfoDisplayTab ])
+    this._call("writeText", [err.message, 0, 1, true, this.networkInfoDisplayTab ])
+
     this.showDeviceId()
   }
   
@@ -70,7 +84,7 @@ class Display {
     while (text.length < rowLength) {
       text = text + " "
     }
-    this._call("writeText", [text, row, col, false, this.mainDisplayTab])
+    this._call("writeText", [text, col, row, false, this.mainDisplayTab])
   }
 
   _call(method, args) {

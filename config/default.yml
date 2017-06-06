@@ -27,4 +27,4 @@ displayRpcPort: 5000
 mainDisplayTab: "default"
 
 # Which tab on the display that we show network details
-networkInfoDisplayTab: "networkInfo"
+networkInfoDisplayTab: "tab1"

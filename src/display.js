@@ -26,44 +26,43 @@ class Display {
 
   showNetworkOk() {
     this._writeLineOnMainTab(0, "Network")
-    this._writeLineOnMainTab(1, "OK")
+    this._writeLineOnMainTab(1, "OK :)")
 
-    this._call("setTexts", [["Network OK"], this.networkInfoDisplayTab ])
+    this._call("setTexts", [["Network OK :)"], this.networkInfoDisplayTab ])
 
     this.showDeviceId()
   }
 
   showNetworkError(err) {
-    this._writeLineOnMainTab(0, "Network")
-    this._writeLineOnMainTab(1, "ERROR")
+    this._writeLineOnMainTab(0, "NETWORK")
+    this._writeLineOnMainTab(1, "ERROR!")
 
-    this._call("setTexts", [["Network ERROR"], this.networkInfoDisplayTab ])
+    this._call("setTexts", [["NETWORK ERROR :("], this.networkInfoDisplayTab ])
     this._call("writeText", [err.message, 0, 1, true, this.networkInfoDisplayTab ])
 
     this.showDeviceId()
   }
 
   showUpdateError(err) {
-    this._writeLineOnMainTab(0, "Update")
-    this._writeLineOnMainTab(1, "ERROR")
+    this._writeLineOnMainTab(0, "UPDATE")
+    this._writeLineOnMainTab(1, "ERROR!")
 
-    this._call("setTexts", [["Update ERROR"], this.networkInfoDisplayTab ])
+    this._call("setTexts", [["UPDATE ERROR :("], this.networkInfoDisplayTab ])
     this._call("writeText", [err.message, 0, 1, true, this.networkInfoDisplayTab ])
 
     this.showDeviceId()
   }
   
   showUpdatingProgressBar() {
-    console.log("showUpdatingProgressBar")
-    this._writeLineOnMainTab(0, "Update")
-    this.progressBar.start()
+    this._writeLineOnMainTab(0, "Doing")
+    this._writeLineOnMainTab(1, "update")
+    this._writeLineOnMainTab(2, ".....")
   }
 
   hideUpdatingProgressBar() {
-    console.log("hideUpdatingProgressBar")
     this._writeLineOnMainTab(0, "Update")
-    this._writeLineOnMainTab(1, "OK")
-    this.progressBar.stop()
+    this._writeLineOnMainTab(1, "done :)")
+    this._writeLineOnMainTab(2, "")
   }
 
 

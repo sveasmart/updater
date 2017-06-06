@@ -16,7 +16,7 @@ exports.callDisplayOverRpc = function(displayRpcPort, method, args, logCalls = f
       console.log("RPC-calling " + method + "()")
     }
   }
-  const rpcClient = rpc.Client.$create(displayRpcPort, 'localhost');
+  const rpcClient = rpc.Client.$create(displayRpcPort, '127.0.0.1');
   return new Promise((resolve, reject) => {
     rpcClient.call(method, args, (err, res) => {
       if (err) {

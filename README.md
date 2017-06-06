@@ -1,4 +1,4 @@
-# Updater (under development)
+# Updater
 Device Updater is a piece of software that allows you to remotely administer
 and update devices, even those that are behind super-restrictive firewalls.
 
@@ -8,3 +8,9 @@ and update devices, even those that are behind super-restrictive firewalls.
 
 # How to test
 npm test
+
+# How to run
+npm start
+
+# Protocol
+https://github.com/sveasmart/updater-protocol

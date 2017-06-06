@@ -32,20 +32,3 @@ exports.loadConfig = function() {
     networkInfoDisplayTab: config.get("networkInfoDisplayTab")
   }
 }
-
-/**
- * Returns the given config param.
- * If the param is missing, it will either return the default value (if given)
- * or throw an exception.
- */
-function getConfig(paramName, defaultValue) {
-  if (defaultValue !== undefined) {
-    if (config.has(paramName)) {
-      return config.get(paramName)
-    } else {
-      return defaultValue
-    }
-  } else {
-    return config.get(paramName)
-  }
-}

@@ -18,7 +18,7 @@ class Display {
 
     this.logCalls = logCalls
 
-    this.mainTabColumn = 8
+    this.mainTabColumn = 9
 
     const progressBarRow = 1
     this.progressBar = new ProgressBar(this.displayRpcPort, progressBarRow, this.mainTabColumn, "", this.logCalls)

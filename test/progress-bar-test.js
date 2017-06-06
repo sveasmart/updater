@@ -1,5 +1,3 @@
-const adafruit = require("adafruit-mcp23008-ssd1306-node-driver")
-
 const displayRpcPort = 5000
 const ProgressBar = require("../src/progress-bar")
 

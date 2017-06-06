@@ -9,8 +9,6 @@ const idGenerator = require('./id-generator')
 
 const config = require('./updater-config').loadConfig()
 
-//const updaterState = new (require('./state-tracker').UpdaterState)()
-
 let errorMessage = null
 
 if (config.simulate) {
@@ -19,13 +17,7 @@ if (config.simulate) {
 
 
 function checkForUpdate() {
-  const options = {
-    updateScriptTimeoutSeconds: config.updateScriptTimeoutSeconds,
-    simulate: config.simulate,
-    onUpdating: onUpdating
-  }
-  
-  updater.checkForUpdateAndTellHubHowItWorkedOut(config.rootDir, config.hubUrl, options)
+  updater.checkForUpdateAndTellHubHowItWorkedOut()
     .then((result) => {
       display.showNetworkOk()
       console.log("Update check completed. ", result)
@@ -54,6 +46,7 @@ function checkForUpdate() {
  * So I'll show a progress bar.
  */
 function onUpdating(updating) {
+  console.log("onUpdating called", updating)
   if (updating) {
     display.showUpdatingProgressBar()
   } else {
@@ -125,16 +118,21 @@ function setSystemClock() {
   time.syncSystemClockWithServer(config.hubUrl)
 }
 
-function runSpinnerWhenNeeded() {
-  
-}
-
 createRootDirIfMissing()
+
 const deviceId = readDeviceId()
-const updater = new Updater(config.rootDir, config.hubUrl, config)
+
+const options = {
+  updateScriptTimeoutSeconds: config.updateScriptTimeoutSeconds,
+  simulate: config.simulate,
+  onUpdating: onUpdating
+}
+const updater = new Updater(config.rootDir, config.hubUrl, options)
+
 const display = new DisplayClient(deviceId, config.displayRpcPort, config.mainDisplayTab, true)
 
 display.showDeviceId()
+
 setSystemClock()
 checkForUpdate()
 

@@ -8,10 +8,6 @@ const util = require('./util')
 
 const encoding = 'utf8'
 
-const updaterState = new (require('./state-tracker').UpdaterState)()
-const STATE = require('./state-tracker').STATE
-const RESULT = require('./state-tracker').RESULT
-
 class Updater {
 
   constructor(rootDir, hubUrl, 
@@ -35,6 +31,7 @@ class Updater {
     this.simulate = simulate
     this.updaterVersion = util.getMyVersionNumber()
     this.onUpdating = onUpdating
+    console.log("this.onUpdating", this.onUpdating)
   }
 
   /*

@@ -40,10 +40,15 @@ class Display {
   }
   
   showUpdatingProgressBar() {
+    console.log("showUpdatingProgressBar")
+    this._writeLineOnMainTab(0, "Update")
     this.progressBar.start()
   }
 
   hideUpdatingProgressBar() {
+    console.log("hideUpdatingProgressBar")
+    this._writeLineOnMainTab(0, "Update")
+    this._writeLineOnMainTab(1, "OK")
     this.progressBar.stop()
   }
 

@@ -35,7 +35,8 @@
     "request": "2.79.0",
     "request-promise-native": "1.0.4",
     "timeout-as-promise": "1.0.0",
-    "enum": "^2.4.0"
+    "enum": "2.4.0",
+    "json-rpc2": "1.0.2"
 
   }
 }

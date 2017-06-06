@@ -8,19 +8,33 @@ const util = require('./util')
 
 const encoding = 'utf8'
 
-const updaterState = new (require('./updater-state').UpdaterState)()
-const STATE = require('./updater-state').STATE
-const RESULT = require('./updater-state').RESULT
+const updaterState = new (require('./state-tracker').UpdaterState)()
+const STATE = require('./state-tracker').STATE
+const RESULT = require('./state-tracker').RESULT
 
 class Updater {
 
-  constructor(rootDir, hubUrl, updateScriptTimeoutSeconds, simulate) {
+  constructor(rootDir, hubUrl, 
+    {
+      updateRequestTimeoutSeconds = 10, 
+      updateScriptTimeoutSeconds = 1800, 
+      simulate = false,
+      onUpdating, //called when we start or stop the process of downloading and executing an update. true = starting, false = ended (whether successful or not).
+    }
+  ) {
+    console.assert(arguments.length == 2 || arguments.length == 3, "I expected 2 or 3 arguments. Not " + arguments.length + ". ")
+
+    console.assert(rootDir, "missing rootDir")
+    console.assert(rootDir, "missing hubUrl")
+
+
     this.rootDir = rootDir
     this.hubUrl = hubUrl
-    this.updateRequestTimeoutSeconds = 10
+    this.updateRequestTimeoutSeconds = updateRequestTimeoutSeconds
     this.updateScriptTimeoutSeconds = updateScriptTimeoutSeconds
     this.simulate = simulate
     this.updaterVersion = util.getMyVersionNumber()
+    //this.stateTracker = new Updat
   }
 
   /*
@@ -58,6 +72,7 @@ class Updater {
     return this._callUpdateMe()
 
       .then((updateMeResponse) => {
+        console.log("got updateMe response: ", updateMeResponse)
         //Got response from /updateme
         return this._handleUpdateMeResponse(updateMeResponse)
       })
@@ -65,10 +80,12 @@ class Updater {
       //TEMP - the below useful for when tests break and we want to see what's really going on.
       //Comment out in production to avoid the extra logging, since the caller of checkForUpdateAndTellHubHowItWorkedOut
       //should be responsible for handling uncaught errors anyway.
+      /*
       .catch((err) => {
         console.log("uncaught error intercepted by checkForUpdateAndTellHubHowItWorkedOut", err)
         throw err
       })
+      */
 
 
   }
@@ -194,6 +211,7 @@ class Updater {
     return requestPromise(options)
       .catch((err) => {
         err.networkError = true
+        throw err
       })
   }
 

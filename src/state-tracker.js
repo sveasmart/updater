@@ -16,7 +16,7 @@ const RESULT = new Enum([
   'networkFailed'
 ])
 
-class UpdaterState {
+class StateTracker {
   constructor() {
     this.state = null
     this.result = null
@@ -38,7 +38,7 @@ class UpdaterState {
 }
 
 module.exports = {
-  UpdaterState: UpdaterState,
+  UpdaterState: StateTracker,
   STATE: STATE,
   RESULT: RESULT
 }

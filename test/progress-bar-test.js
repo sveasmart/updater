@@ -1,15 +1,9 @@
 const adafruit = require("adafruit-mcp23008-ssd1306-node-driver")
 
-let display
-if (adafruit.hasDriver()) {
-  display = new adafruit.DisplayDriver()
-} else {
-  display = new adafruit.FakeDisplayDriver()
-}
-
+const displayRpcPort = 5000
 const ProgressBar = require("../src/progress-bar")
 
-const progressBar = new ProgressBar(display, 3, 8, "")
+const progressBar = new ProgressBar(displayRpcPort, 3, 8, "")
 
 console.log("Starting progress bar")
 progressBar.start()

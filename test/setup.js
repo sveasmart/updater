@@ -60,7 +60,7 @@ function getUpdater() {
   });
 
   const Updater = require("../src/updater.js")
-  updater = new Updater("/updatertest", 'http://fakeupdater.com', 1, false)
+  updater = new Updater("/updatertest", 'http://fakeupdater.com', {updateScriptTimeoutSeconds: 1})
   updater.lastExecutedFile = null
   updater.lastExecutedFileOptions = null
 

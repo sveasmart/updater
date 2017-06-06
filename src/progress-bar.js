@@ -1,3 +1,5 @@
+const callDisplayOverRpc = require('./display-util').callDisplayOverRpc
+
 /**
  * A helper class that displays an animated progress bar
  * on the display whenever active.
@@ -6,20 +8,22 @@ class ProgressBar {
   /**
    * Creates a ProgressBar that uses the given display.
    * The display
-   * @param display should match DisplayDriver from adafruit-mcp23008-ssd1306-node-driver.
+   * @param displayRpcPort the port that the display is running on
    * @param row which row (0-7) the progress bar should be shown on. Default 0.
    * @param text optional text at the beginning of the row, for example "Updating". Should be max 13 chars.
    *
    */
-  constructor(display, row = 0, col = 0, text = "") {
-    console.assert(display, "missing display parameter")
+  constructor(displayRpcPort, row = 0, col = 0, text = "", logCalls = true) {
+    console.assert(displayRpcPort, "missing displayRpcPort parameter")
     console.assert(row >= 0 && row <= 7, "row should be a number from 0-7, not " + row)
     console.assert(!text || text.length <= 13, "text is too long, should be max 13 chars: " + text)
-    this.text = text
+
+    this.displayRpcPort = displayRpcPort
     this.row = row
     this.col = col
+    this.text = text
+    this.logCalls = logCalls
 
-    this.display = display
     this.barCount = 0
     //The display will look something like this,
     //so we calculate maxBarCount based on a row width of 16
@@ -53,7 +57,7 @@ class ProgressBar {
 
   stop() {
     if (this.isActive()) {
-      this.display.clearRow(this.row)
+      callDisplayOverRpc(this.displayRpcPort, "clearRow", [this.row], this.logCalls)
       clearInterval(this.timeout)
       this.timeout = null
     }
@@ -73,7 +77,7 @@ class ProgressBar {
   }
 
   _drawProgressBarOnDisplay() {
-    this.display.clearRow(this.row)
+    callDisplayOverRpc(this.displayRpcPort, "clearRow", [this.row], this.logCalls)
     let content = this.text + "["
 
     //The display will look like this with full bars (16 chars wide):
@@ -87,7 +91,7 @@ class ProgressBar {
     }
     content = content + "]"
 
-    this.display.writeText(content, this.col, this.row, false)
+    callDisplayOverRpc(this.displayRpcPort, "writeText", [content, this.col, this.row, false], this.logCalls)
   }
 }
 

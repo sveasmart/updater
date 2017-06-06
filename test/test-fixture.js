@@ -9,29 +9,29 @@ const querystring = require('querystring');
 const devices = [
   {
     deviceId: "deviceA",
-    latestSnapshotId: "1"
+    latestSnapshotId: 1
   },
 
   {
     deviceId: "deviceB",
-    latestSnapshotId: "2"
+    latestSnapshotId: 2
   },
 
   {
     deviceId: "deviceC",
-    latestSnapshotId: "2",
+    latestSnapshotId: 2,
     fileInZip: "noUpdateFileHereHaHaHa.sh"
   },
 
   {
     deviceId: "deviceD",
-    latestSnapshotId: "5",
+    latestSnapshotId: 5,
     scriptIsInSubFolder: true
   },
 
   {
     deviceId: "deviceE",
-    latestSnapshotId: "7",
+    latestSnapshotId: 7,
     downloadType: 'sh',
     config: {
       color: 'blue'
@@ -40,7 +40,7 @@ const devices = [
 
   {
     deviceId: "deviceF",
-    latestSnapshotId: "8",
+    latestSnapshotId: 8,
     downloadType: 'js',
     config: {
       app1: {
@@ -51,7 +51,7 @@ const devices = [
 
   {
     deviceId: "deviceG",
-    latestSnapshotId: "30",
+    latestSnapshotId: 30,
     newUpdateInterval: 120
   }
 ]
@@ -68,6 +68,7 @@ function initDevice(device) {
   } 
 
   if (!device.downloadType || device.downloadType == 'zip') {
+    device.downloadType = 'zip'
     publishZipFile(getFileName(device), subFileName, "Hello", device.scriptIsInSubFolder)
   } else if (device.downloadType == 'sh') {
     publishShFile(getFileName(device))
@@ -118,6 +119,7 @@ function publishJsFile(fileName) {
 }
 
 function getDevice(deviceId) {
+  console.assert(deviceId, "missing deviceId")
   for (device of devices) {
     if (device.deviceId == deviceId) {
       return device
@@ -135,6 +137,7 @@ function initFixture() {
     .query(true)
     .reply(200, function(uri, requestBody) {
       const query = url.parse(uri, true).query
+      console.assert(query.deviceId, "No deviceId in request to updateme: " + JSON.stringify(query))
       const device = getDevice(query.deviceId)
       const response = {}
 
@@ -160,6 +163,8 @@ function initFixture() {
   nock('http://fakeupdater.com')
     .post("/howitworkedout")
     .reply(200, function(uri, requestBody) {
+      console.assert(requestBody.deviceId, "No deviceId in request to howItWorkedOut: " + JSON.stringify(requestBody))
+
       const device = getDevice(requestBody.deviceId)
       device.lastLog = requestBody
       return {

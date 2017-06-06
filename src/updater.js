@@ -1,391 +1,470 @@
+const requestPromise = require('request-promise-native')
 const request = require('request')
 const fs = require("fs")
 const path = require('path')
 const child_process = require('child_process')
-const extract = require('extract-zip')
+
 const util = require('./util')
 
 const encoding = 'utf8'
 
-/*
- Contacts the given hub and checks if an update is needed.
- Uses the given rootDir to check device-id and snapshot-id.
- If the hub says an update is needed, then I'll download the update,
- unzip it, and execute update.sh.
- I'll pass in the environment variable 'app_root' so the script knows where to put stuff.
- And finally, I'll contact the hub again to notify how it went (including output logs).
+const updaterState = new (require('./updater-state').UpdaterState)()
+const STATE = require('./updater-state').STATE
+const RESULT = require('./updater-state').RESULT
 
- See the update protocol for details:
- https://github.com/sveasmart/updater-protocol
+class Updater {
 
- If an update was needed, and the updater managed to download the update script and execute it,
- and the updater managed to report the result back to the hub,
- then it will return something like through the callback:
- {
- deviceId: 'deviceA',
- snapshotId: '22',  //whatever snapshotId we ended up at
- output: 'updating... done!' //whatever the update script outputed
- updated: false,    //true if an update was needed and executed, false if update wasn't needed
- newUpdateInterval: 30   //if given by the hub
- }
+  constructor(rootDir, hubUrl, updateScriptTimeoutSeconds, simulate) {
+    this.rootDir = rootDir
+    this.hubUrl = hubUrl
+    this.updateRequestTimeoutSeconds = 10
+    this.updateScriptTimeoutSeconds = updateScriptTimeoutSeconds
+    this.simulate = simulate
+    this.updaterVersion = util.getMyVersionNumber()
+  }
 
- @param {string} rootDir - the root dir that contains (or will contain) device-id, snapshot-id, apps, and downloads. For example "/home"
- @param {string} hubUrl - the base url of the updater hub. For example http://hub.updater.eu. No trailing slash.
- @param {bool} simulate - if true, I will only pretend to execute local update scripts.
- @param isUpdatingFunction - if given, this function is called with boolean true when an update is in progress, and false when not.
- */
-function checkForUpdateAndTellHubHowItWorkedOut(rootDir, hubUrl, updateScriptTimeoutSeconds, simulate, isUpdatingFunction, callback) {
-  try {
+  /*
+   Contacts the given hub and checks if an update is needed.
+   Reads device-id and snapshot-id (relative to rootDir)
+   If the hub says an update is needed, then I'll download the update and execute it.
+   I'll pass in the environment variable 'app_root' so the script knows where to put stuff.
+   And finally, I'll contact the hub again to notify how it went (including output logs).
+  
+   See the update protocol for details:
+   https://github.com/sveasmart/updater-protocol
+
+   Returns a promise, which resolves to an object like this.
+   {
+   deviceId: 'deviceA',
+   snapshotId: '22',  //whatever snapshotId we ended up at (or stayed at)
+   output: 'updating... done!' //whatever the update script outputed (if a script was executed)
+   updated: false,    //true if an update was needed and executed, false if update wasn't needed
+   newUpdateInterval: 30   //if given by the hub
+   }
+
+   The promise will resolve successfully if no update was needed, or if the update script was successfully executed.
+   The promise will fail if an update script was needed and couldn't be executed, or if the /updateme call to the hub failed.
+   The error will contain:
+   error.networkError = true if the problem was network-related
+   error.updateError = true if the problem happened during script execution
+
+
+   If I fail to notify the updater hub about the result, that failure will be logged and swallowed.
+   So failure in calling /howitworkedout will not be visible outside this method.
+
+  */
+  checkForUpdateAndTellHubHowItWorkedOut() {
+    //Call /updateme
+    return this._callUpdateMe()
+
+      .then((updateMeResponse) => {
+        //Got response from /updateme
+        return this._handleUpdateMeResponse(updateMeResponse)
+      })
+
+      //TEMP - the below useful for when tests break and we want to see what's really going on.
+      //Comment out in production to avoid the extra logging, since the caller of checkForUpdateAndTellHubHowItWorkedOut
+      //should be responsible for handling uncaught errors anyway.
+      .catch((err) => {
+        console.log("uncaught error intercepted by checkForUpdateAndTellHubHowItWorkedOut", err)
+        throw err
+      })
+
+
+  }
+
+  _handleUpdateMeResponse(updateMeResponse) {
+    const returnObject = {
+      deviceId: this._readDeviceId()
+    }
+
+    if (updateMeResponse.updateInterval) {
+      //Hub wants me to change updateInterval.
+      //Make note of that in the return object.
+      returnObject.newUpdateInterval = updateMeResponse.updateInterval
+    }
+
+    //Now let's execute the update (if needed)
+    return this._executeUpdateIfNeeded(updateMeResponse)
+
+      .then((scriptOutput) => {
+        if (scriptOutput == null) {
+
+          //No update was needed. Fine.
+          //Make note that we are still at the same snapshot ID as before
+          returnObject.snapshotId = this._readSnapshotId()
+          returnObject.updated = false
+          return returnObject
+
+        } else {
+          //An update was successfully executed!
+          //Store the script output and new snapshotId in the return object
+          const newSnapshotId = this._readSnapshotId()
+          returnObject.snapshotId = newSnapshotId
+          returnObject.output = scriptOutput
+          returnObject.updated = true
+
+          //Let's trigger a call to /howitworkedout, so the hub finds out about the success
+          return this._tellHubHowItWorkedOut(newSnapshotId, true, scriptOutput)
+            .then(() => {
+              //OK, we've notified the hub about our successful update.
+              //We're done!
+              return returnObject
+            })
+            .catch((errorTellingHubHowItWorkedOut) => {
+              //Oh, we couldn't tell the hub about our successful update.
+              //But we don't really care, so let's swallow that.
+              console.log("Update succeeded, but we failed when calling /howitworkedout. Ignoring the problem. ", errorTellingHubHowItWorkedOut)
+              return returnObject
+            })
+        }
+
+      }).catch((updateError) => {
+        //Darn. An update was needed, and we failed to execute it.
+        //For example, couldn't download the update file, or the script execution
+        //threw an error.
+        console.log("Update failed! " +  updateError.message, updateError)
+
+        //Let's capture the output from the script execution
+        let scriptOutput = ""
+        if (updateError.stdout) {
+          scriptOutput = scriptOutput + updateError.stdout.toString()
+        }
+        scriptOutput = scriptOutput + updateError.toString()
+
+        //Then let's trigger a call to /howitworkedout, so the hub finds out about the failure
+        const newSnapshotId = updateError.newSnapshotId
+        let succeededInTellingHubAboutTheFailure = false
+        return this._tellHubHowItWorkedOut(newSnapshotId, false, scriptOutput)
+          .then(() => {
+            //OK we notified the hub about the update failure,
+            //so now let's throw it.
+            succeededInTellingHubAboutTheFailure = true
+            throw updateError
+          })
+          .catch((error) => {
+            //OK now we're not sure if this error is the updateError being rethrown above,
+            //or if it's actually a new error from telling the hub how it worked out.
+            //Not that we care much, but we do want the logs to explain what's going on.
+            //So we use this little boolean to distinguish between the two cases.
+            if (succeededInTellingHubAboutTheFailure) {
+              console.log("I successfully told the hub about the failed udpate")
+            } else {
+              //Oh, we couldn't tell the hub about the failed update!
+              console.log("Update failed AND I failed to notify the hub about the problem", error)
+            }
+
+            //The important thing here is the original update error,
+            //not the failure to notify the hub afterwards.
+            //So we always want to rethrow the original update error.
+            throw updateError
+
+          })
+      })
+  }
+
+
+  /**
+   * Returns a promise that calls /updateme
+   * and resolves with the response json.
+   * If an error happens, the error will be tagged with networkError = true
+   */
+  _callUpdateMe() {
     //Read the deviceId from file
-    const deviceIdFile = path.join(rootDir, "device-id")
-    const deviceId = fs.readFileSync(deviceIdFile, encoding).toString()
+    const deviceId = this._readDeviceId()
 
     //Read the snapshotId from file, or use 0 if not found.
-    const snapshotIdFile = path.join(rootDir, "snapshot-id")
-    var snapshotId = 0
-    if (fs.existsSync(snapshotIdFile)) {
-      snapshotId = fs.readFileSync(snapshotIdFile, encoding).toString()
+    const snapshotId = this._readSnapshotId()
+
+    console.log("Checking for update from " + this.hubUrl + " ... (deviceId = " + deviceId + ", snapshotId = " + snapshotId + ", updaterVersion = " + this.updaterVersion + ")")
+
+    //Configure the HTTP request
+    const options = {
+      uri: this.hubUrl + "/updateme",
+      json: true,
+      method: 'GET',
+      qs: {
+        'deviceId': deviceId,
+        'snapshotId': snapshotId,
+        'updaterVersion' : this.updaterVersion
+      },
+      timeout: this.updateRequestTimeoutSeconds * 1000
     }
 
-    let updaterVersion = util.getMyVersionNumber()
-
-    //Go check if an update is needed
-    console.log("Checking for update from " + hubUrl + " ... (deviceId = " + deviceId + ", snapshotId = " + snapshotId + ", updaterVersion = " + updaterVersion + ")")
-    askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, updaterVersion, updateScriptTimeoutSeconds, simulate, isUpdatingFunction, callback)
-  } catch (err) {
-    console.log("Something went synchronously wrong when calling checkForUpdateAndTellHubHowItWorkedOut. Caught the error, will return it in the callback." + err)
-    callback(err)
+    return requestPromise(options)
+      .catch((err) => {
+        err.networkError = true
+      })
   }
 
-}
 
-/**
- * Callback format:
- {
- deviceId: 'deviceA',
- snapshotId: '22',
- updated: false,    //true if an update was needed and executed, false if update wasn't needed
- newUpdateInterval: 30   //if given by the hub
- }
- */
-function askHubToUpdateMe(rootDir, hubUrl, deviceId, snapshotId, updaterVersion, updateScriptTimeoutSeconds, simulate, isUpdatingFunction, callback) {
-  //Configure the HTTP request
-  const options = {
-    uri: hubUrl + "/updateme",
-    json: true,
-    method: 'GET',
-    qs: {
-      'deviceId': deviceId,
-      'snapshotId': snapshotId,
-      'updaterVersion' : updaterVersion
-    },
-    timeout: 5000
-  }
+  /**
+   * Returns a promise that checks the given updateMeResponse
+   * and, if an update was needed, downloads the update script and executes it.
+   *
+   * If an update wasn't needed, the promise resolves with null.
+   *
+   * If an update was needed, and downloaded and executed successfully,
+   * the promise resolves with the output from the script execution.
+   *
+   * If an update was needed, and failed (because it couldn't be downloaded, or because the script failed)
+   * then the promise will be rejected.
+   * The error message will contain:
+   * error.stdout = the output from the script (if it got executed)
+   * error.newSnapshotId = the snapshotId it was trying to update to
+   */
+  _executeUpdateIfNeeded(updateMeResponse) {
+    if (updateMeResponse.status === "noUpdateNeeded") {
+      //Nothing to update. We are done!
+      return Promise.resolve(null)
 
-  const callbackArgument = {
-    deviceId: deviceId,
-    snapshotId: snapshotId
-  }
-
-  //Do the http request
-  request(options, function(err, response, body) {
-    //Parse the response
-    if (err) {
-      err.networkError = true
-      console.log("Creating a networkError", err)
-      return callback(err)
-    }
-
-    if (body.updateInterval) {
-      callbackArgument.newUpdateInterval = body.updateInterval
-    }
-
-    if (body.status === "noUpdateNeeded") {
-
-      //Nothing to change. We are done!
-      callbackArgument.updated = false
-      callback(null, callbackArgument)
-
-    } else if (body.status === "updateNeeded") {
-      
+    } else if (updateMeResponse.status === "updateNeeded") {
       //The hub says we need to update! Get the URL to the file.
-      const newSnapshotId = getMandatoryResponseProperty(body, "snapshotId").toString()
-      const downloadUrl = getMandatoryResponseProperty(body, "downloadUrl")
-      const downloadType = getOptionalResponseProperty(body, "downloadType", "zip").toLowerCase()
-      const configParams = getOptionalResponseProperty(body, "config", {})
+      const newSnapshotId = util.getMandatoryProperty(updateMeResponse, "snapshotId")
+      const downloadUrl = util.getMandatoryProperty(updateMeResponse, "downloadUrl")
+      const downloadType = util.getOptionalProperty(updateMeResponse, "downloadType", "zip").toLowerCase()
+      const configParams = util.getOptionalProperty(updateMeResponse, "config", {})
 
-      console.log("Will update device " + deviceId + " from snapshot " + snapshotId + " to " + newSnapshotId)
+      console.log("Will update device " + this._readDeviceId() + " from snapshot " + this._readSnapshotId() + " to " + newSnapshotId + ", using downloadUrl " + downloadUrl)
       console.log("Config: ", configParams)
 
-      if (isUpdatingFunction) {
-        isUpdatingFunction(true)
-      }
-
-      //Execute the update
-      try {
-        executeUpdate(rootDir, deviceId, newSnapshotId, downloadUrl, downloadType, configParams, updateScriptTimeoutSeconds, simulate, function(err, scriptOutput) {
-
-          if (isUpdatingFunction) {
-            isUpdatingFunction(false)
-          }
-
-          //OK the update script has been executed. Let's see how it worked out.
-          if (err) {
-            console.log("Update failed! " +  err.message)
-            //Oh, the update script failed! Let's tell the hub
-            let output = ""
-            if (err.stdout) {
-              output = output + err.stdout.toString()
-            }
-            output = output + err.toString()
-
-            tellHubHowItWorkedOut(hubUrl, deviceId, newSnapshotId, false, output, function(err2) {
-              if (err2) {
-                console.log("Update failed AND I failed to notify the hub about the problem", err2)
-              }
-              err.updateError = true
-              console.log("Creating an updateError", err)
-              callback(err)
-            })
-
-
-          } else {
-            console.log("Update succeeded!", scriptOutput)
-            //The update script succeeded! Let's tell the hub.
-            tellHubHowItWorkedOut(hubUrl, deviceId, newSnapshotId, true, scriptOutput, function(err) {
-              callbackArgument.updated = true
-              callbackArgument.snapshotId = newSnapshotId
-              callback(null, callbackArgument)
-            })
-
-          }
+      return this._executeUpdate(newSnapshotId, downloadUrl, downloadType, configParams)
+        .catch((err) => {
+          err.newSnapshotId = newSnapshotId
+          throw err
         })
-      } catch (err) {
-        if (isUpdatingFunction) {
-          isUpdatingFunction(false)
-        }
-
-        console.log("Update failed! Threw an error. " + err.message)
-        //Oh, the update script failed! Let's tell the hub
-        let output = ""
-        if (err.stdout) {
-          output = output + err.stdout.toString()
-        }
-        output = output + err.toString()
-
-        tellHubHowItWorkedOut(hubUrl, deviceId, newSnapshotId, false, output, function(err2) {
-          if (err2) {
-            console.log("Update failed (synchronously) AND I failed to notify the hub about the problem", err2)
-          }
-          callback(err)
-        })
+    }
+  }
 
 
-      }
+  /**
+   * Returns a promise that downloads the given file and executes the update script inside it.
+   *
+   * If the script was downloaded and executed successfully,
+   * the promise resolves with the output from the script execution.
+   *
+   * If the update failed (because it couldn't be downloaded, or because the script failed)
+   * then the promise will be rejected. If the script was downloaded but failed on execution,
+   * then the error object will contain error.stdout = the output from execution
+   *
+   * If simulate == true then I'll just pretend everything worked out, and not run anything.
+   */
+  _executeUpdate(newSnapshotId, downloadUrl, downloadType, configParams) {
+    if (downloadType == 'zip') {
+      return this._downloadAndExecuteZipUpdate(newSnapshotId, downloadUrl, configParams)
+  
+    } else if (downloadType == 'sh') {
+      return this._downloadAndExecuteShUpdate(newSnapshotId, downloadUrl, configParams)
+
+    } else if (downloadType == 'js') {
+      return this._downloadAndExecuteJsUpdate(newSnapshotId, downloadUrl, configParams)
 
     } else {
-      //Invalid response from the hub. Bail out!
-      console.log("Unexpected or missing status in response body", body)
-      callback(new Error("Unexpected or missing status in response body: " + body))
+      throw new Error("Invalid downloadType: '" + downloadType + "'. Should be 'zip' or 'sh' or 'js'.")
     }
-  })
-}
-
-function tellHubHowItWorkedOut(hubUrl, deviceId, snapshotId, success, output, callback) {
-  if (success) {
-    console.log("Telling the hub that the update to " + snapshotId + " succeeded")
-  } else {
-    console.log("Telling the hub that the update to " + snapshotId + " failed")
-  }
-  //This is what we'll send to the hub (and to our callback)
-  const result = {
-    deviceId: deviceId,
-    snapshotId: snapshotId,
-    success: "" + success,
-    output: output
   }
 
-  const options = {
-    uri: hubUrl + "/howitworkedout",
-    json: true,
-    method: 'POST',
-    body: result
-  }
+  /**
+   * Returns a promise that downloads and executes the update script in the zip file at the
+   * given downloadUrl
+   */
+  _downloadAndExecuteZipUpdate(newSnapshotId, downloadUrl, configParams) {
+    const zipFile = this._getDownloadedFilePath(newSnapshotId, 'download.zip')
+    const zipParent = path.join(zipFile, "..")
 
-  if (!callback) {
-    callback = function() {}
-  }
-
-  request(options, function(err, result) {
-    if (err) {
-      console.log("An error occurred while calling /howitworkedout", err)
-      return callback(err)
-    } else {
-      console.log("Successfully called /howitworkedout")
-      callback(null, result.body)
-    }
-
-  })
-}
-
-
-/*
-Downloads the given file, unpacks, and calls update.sh.
-If all goes well, the callback is called with the output from the script.
-If anything goes wrong, the callback is called with an error.
-If simulate == true then I'll just pretend everything worked out, and not run anything.
-*/
-function executeUpdate(rootDir, deviceId, snapshotId, downloadUrl, downloadType, configParams, updateScriptTimeoutSeconds, simulate, callback) {
-  //Create the download folder for this zip file
-  const downloadsDir = makeDir(rootDir, 'downloads')
-  const snapshotRoot = makeDir(downloadsDir, snapshotId)
-
-  if (downloadType == 'zip') {
-    const downloadedFile = path.resolve(path.join(snapshotRoot, 'download.zip'))
-
-    //Download the file
-    const filePipe = request({uri: downloadUrl}).pipe(fs.createWriteStream(downloadedFile))
-
-    filePipe.on('close', function() {
-      //OK now I got my file. Unzip it.
-      extract(downloadedFile, {dir: snapshotRoot}, function (err) {
-        if (err) return callback(err)
-
-        //OK, we've unzipped the file. Now let's call the update.sh script.
-        const updateScript = findUpdateScript(snapshotRoot)
-
+    //Download the ZIP file...
+    return util.downloadFile(downloadUrl, zipFile)
+      .then(() => {
+        //OK I got the file!
+        //Unzip it.
+        return util.unzipFile(zipFile)
+      })
+      .then(() => {
+        //OK, we've unzipped the file!
+        //Now let's call the update.sh script.
+        const updateScript = util.findFileInPath(zipParent, 'update.sh')
         if (updateScript) {
-          executeUpdateScript(rootDir, updateScript, snapshotId, configParams, updateScriptTimeoutSeconds, simulate, callback)
+          console.log("Here's what I see in " + zipParent + " after unzipping:")
+          console.log(fs.readdirSync(zipParent).join(","))
+          return this._executeUpdateScript(updateScript, newSnapshotId, configParams)
         } else {
-          callback(new Error("The zip file didn't contain update.sh!"))
+          console.log("The zip file didn't contain update.sh! Here's what I see after unzipping: ")
+          console.log(fs.readdirSync(zipParent).join(","))
+          throw new Error("The zip file didn't contain update.sh!")
         }
       })
-    })
-
-  } else if (downloadType == 'sh') {
-    const downloadedFile = path.resolve(path.join(snapshotRoot, 'update.sh'))
-    const filePipe = request({uri: downloadUrl}).pipe(fs.createWriteStream(downloadedFile))
-    filePipe.on('close', function() {
-      //OK now I got my file. Execute it.
-      executeUpdateScript(rootDir, downloadedFile, snapshotId, configParams, updateScriptTimeoutSeconds, simulate, callback)
-    })
-
-  } else if (downloadType == 'js') {
-    const downloadedFile = path.resolve(path.join(snapshotRoot, 'update.js'))
-    const filePipe = request({uri: downloadUrl}).pipe(fs.createWriteStream(downloadedFile))
-    filePipe.on('close', function() {
-      //OK now I got my file. Execute it.
-      executeUpdateScript(rootDir, downloadedFile, snapshotId, configParams, updateScriptTimeoutSeconds, simulate, callback)
-    })
-  } else {
-    callback(new Error("Invalid downloadType: '" + downloadType + "'. Should be 'zip' or 'sh'."))
   }
 
-}
+  /**
+   * Returns a promise that downloads and executes the update script (.sh) at the given downloadUrl
+   */
+  _downloadAndExecuteShUpdate(newSnapshotId, downloadUrl, configParams) {
+    const shFile = this._getDownloadedFilePath(newSnapshotId, 'update.sh')
 
-function executeUpdateScript(rootDir, updateScript, snapshotId, configParams, updateScriptTimeoutSeconds, simulate, callback) {
-  try {
-    child_process.execSync("chmod a+x " + updateScript)
+    //Download the .sh file
+    return util.downloadFile(downloadUrl, shFile)
+      .then(() => {
+        //OK I got the file! Execute it.
+        this._executeUpdateScript(shFile, newSnapshotId, configParams)
+      })
+  }
 
-    const configString = JSON.stringify(configParams)
+  /**
+   * Returns a promise that downloads and executes the update script (.js) at the given downloadUrl
+   */
+  _downloadAndExecuteJsUpdate(newSnapshotId, downloadUrl, configParams) {
+    const jsFile = this._getDownloadedFilePath(newSnapshotId, 'update.js')
 
-    const cwd = path.resolve(updateScript, "..")
+    //Download the .sh file
+    return util.downloadFile(downloadUrl, jsFile)
+      .then(() => {
+        //OK I got the file! Execute it.
+        this._executeUpdateScript(jsFile, newSnapshotId, configParams)
+      })
+  }
+
+  /**
+   * Executes the given update script synchronously.
+   * If the file is a .sh, it will execute it using shell
+   * If the file is a .js, it will execute it using node.
+   * If successful, updates the 'snapshot-id' file.
+   *
+   * Note that if this.simulate is true, then we will only pretend to execute the file.
+   *
+   * @param updateScriptFile the path to the .sh or .js file to be executed
+   * @param snapshotId the snapshotId to write in 'snapshot-id' if this succeeds.
+   * @param configParams config params to send to the update script via the 'config' environment variable
+   * @returns the output from the script
+   */
+  _executeUpdateScript(updateScriptFile, snapshotId, configParams) {
+    //Make sure we have execution rights
+    child_process.execSync("chmod a+x " + updateScriptFile)
+
+    const cwd = path.resolve(updateScriptFile, "..")
     console.log("Setting cwd to " + cwd)
     const options = {
       'cwd': cwd,
-      'timeout': updateScriptTimeoutSeconds * 1000
+      'timeout': this.updateScriptTimeoutSeconds * 1000
     }
 
-    const appsRootDir = path.resolve(rootDir, 'apps')
+    const appsRootDir = path.resolve(this.rootDir, 'apps')
 
     process.env.apps_root = appsRootDir
     process.env.update_root = cwd
-    process.env.config = configString
+    process.env.config = JSON.stringify(configParams)
 
     let output
-    if (simulate) {
+    if (this.simulate) {
       output = "simulate is true, so I'll just \n" +
-        "pretend that I executed the " + updateScript + "\n" +
+        "pretend that I executed the " + updateScriptFile + "\n" +
         "and successfully updated to snapshotId " + snapshotId + "."
 
-    } else if (updateScript.endsWith(".js")) {
-      console.log("Executing: node " + updateScript + " (timeout = " + updateScriptTimeoutSeconds + " seconds)")
-      const outputBuffer = child_process.execSync("node " + updateScript, options)
+    } else if (updateScriptFile.endsWith(".js")) {
+      console.log("Executing: node " + updateScriptFile + " (timeout = " + this.updateScriptTimeoutSeconds + " seconds)")
+      const outputBuffer = child_process.execSync("node " + updateScriptFile, options)
       output = outputBuffer.toString()
       console.log("Got output: ", output)
 
     } else {
-      console.log("Executing: " + updateScript + " (timeout = " + updateScriptTimeoutSeconds + " seconds)")
-      const outputBuffer = child_process.execFileSync(updateScript, {}, options)
+      console.log("Executing: " + updateScriptFile + " (timeout = " + this.updateScriptTimeoutSeconds + " seconds)")
+      const outputBuffer = child_process.execFileSync(updateScriptFile, {}, options)
       output = outputBuffer.toString()
+      console.log("Got output: ", output)
     }
 
     //Yay, the script succeed!
     //Update the snapshot ID
-    const snapshotIdFile = path.join(rootDir, "snapshot-id")
+    this._saveSnapshotId(snapshotId)
+
+    return output
+  }
+
+  /**
+   * Returns a promise that connects to the Hub and calls /howitworkedout.
+   * @param snapshotId the snapshot update that was executed
+   * @param success true if the update was successful, false if not
+   * @param output the console output from the update script execution
+   */
+  _tellHubHowItWorkedOut(snapshotId, success, output) {
+    if (success) {
+      console.log("Telling the hub that the update to " + snapshotId + " succeeded")
+    } else {
+      console.log("Telling the hub that the update to " + snapshotId + " failed")
+    }
+    //This is what we'll send to the hub
+    const result = {
+      deviceId: this._readDeviceId(),
+      snapshotId: snapshotId,
+      success: "" + success,
+      output: output
+    }
+
+    const options = {
+      uri: this.hubUrl + "/howitworkedout",
+      json: true,
+      method: 'POST',
+      body: result
+    }
+
+    console.log("calling requestPromise for _tellHubHowItWorkedOut")
+    return requestPromise(options)
+      //TEMP
+      .then(() => {
+        console.log("requestPromise for _tellHubHowItWorkedOut succeeded")
+      })
+      //TEMP
+      .catch((err) => {
+        console.log("requestPromise for _tellHubHowItWorkedOut failed. Will rethrow.", err)
+        throw err
+      })
+  }
+
+  /**
+   * Returns the download directory for the given snapshotId.
+   * Creates the dir if necessary.
+   */
+  _getSnapshotRoot(snapshotId) {
+    const downloadsDir = util.makeDir(this.rootDir, 'downloads')
+    return util.makeDir(downloadsDir, snapshotId)
+  }
+
+  _getDownloadedFilePath(snapshotId, fileName) {
+    const snapshotRoot = this._getSnapshotRoot(snapshotId)
+    return path.resolve(path.join(snapshotRoot, fileName))
+  }
+
+  _saveSnapshotId(snapshotId) {
+    const snapshotIdFile = path.join(this.rootDir, "snapshot-id")
     fs.writeFileSync(snapshotIdFile, snapshotId)
-
-    callback(null, output)
-
-  } catch (err) {
-    callback(err)
   }
 
-}
-
-/**
- * Looks for a file named update.sh in this path, or the first subfolder
- */
-function findUpdateScript(parent) {
-  let updateScript = path.join(parent, "update.sh")
-  if (fs.existsSync(updateScript)) {
-    return updateScript
+  _readDeviceId() {
+    const deviceIdFile = path.join(this.rootDir, "device-id")
+    return fs.readFileSync(deviceIdFile, encoding).toString()
   }
-  const children = fs.readdirSync(parent)
-  for (child of children) {
-    const childFullPath = path.join(parent, child)
-    if (fs.statSync(childFullPath).isDirectory()) {
-      updateScript = path.join(childFullPath, "update.sh")
-      if (fs.existsSync(updateScript)) {
-        return updateScript
+
+  /**
+   * Reads the snapshotId from the 'snapshot-id' file.
+   * Returns the snapshotId if found.
+   * If not found, or non-numeric, then returns 0
+   */
+  _readSnapshotId() {
+    const snapshotIdFile = path.join(this.rootDir, "snapshot-id")
+    if (fs.existsSync(snapshotIdFile)) {
+      const content = fs.readFileSync(snapshotIdFile, encoding)
+      const snapshotId = parseInt(content)
+      if (isNaN(snapshotId)) {
+        console.log("Strange. snapshot-id file contains non-numeric value, so I'll use 0: ", content)
+        return 0
+      } else {
+        return snapshotId
       }
+    } else {
+      return 0
     }
   }
-  return null
-
 }
 
-/**
- * Creates the given dir under the given parent.
- * If the dir already exists, does nothing.
- * Returns the full path to the created dir.
- */
-function makeDir(parent, dirName) {
-  const dirPath = path.join(parent, dirName)
-  if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath)
-  }
-  return dirPath
-}
-
-//Gets the given property, or throws error if it doesn't exist.
-function getMandatoryResponseProperty(body, propertyName) {
-  if (propertyName in body) {
-    return body[propertyName]
-  } else {
-    throw new Error("Can't find property " + propertyName + " in body: " + JSON.stringify(body))
-  }
-}
-
-//Gets the given property if provided, otherwise returns the given default
-function getOptionalResponseProperty(body, propertyName, defaultValue) {
-  if (propertyName in body) {
-    return body[propertyName]
-  } else {
-    return defaultValue
-  }
-}
-
-exports.checkForUpdateAndTellHubHowItWorkedOut = checkForUpdateAndTellHubHowItWorkedOut
+module.exports = Updater
 
 

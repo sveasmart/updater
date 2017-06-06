@@ -1,45 +1,33 @@
 const util = require('./util')
 const time = require('./time')
-const config = require('config')
+const config = require('./config')
+
+
 const fs = require('fs')
 const path = require('path')
 
-const updater = require('./updater')
+const Updater = require('./updater')
+const updater = new Updater()
 const idGenerator = require('./id-generator')
 const ProgressBar = require('./progress-bar')
 
-const minUpdateIntervalSeconds = 1
-const maxUpdateIntervalSeconds = 60 * 60 * 24 //max 24 hours
+const displayClient = new DisplayClient(config.displayRpcPort, config.mainDisplayTab, true)
 
-const rootDir = config.get('rootDir')
-const hubUrl = config.get('hubUrl')
-var updateIntervalSeconds = util.getConfigWithMinMax('updateIntervalSeconds', minUpdateIntervalSeconds, maxUpdateIntervalSeconds)
-const deviceIdLength = config.get('deviceIdLength')
-const simulate = config.get('simulate')
-const updateScriptTimeoutSeconds = util.getConfigWithMinMax('updateScriptTimeoutSeconds', 1, (60 * 60)) //max 1 hour
+const updaterState = new require('./updater-state').UpdaterState()
 
-if (simulate) {
+let errorMessage = null
+
+if (config.simulate) {
   console.log("simulate == true, so I will only pretend to execute local update scripts.")
 }
 
-var display = null
 var progressBar = null
-try {
-  const adafruit = require('adafruit-mcp23008-ssd1306-node-driver')
-  if (adafruit.hasDriver()) {
-    console.log("Adafruit is available, so this device appears to have a display :)")
-    display = new adafruit.DisplayDriver()
-  } else {
-    console.log("Adafruit is not available, so we'll fake the display using the console")
-    display = new adafruit.FakeDisplayDriver()
-  }
-  progressBar = new ProgressBar(display, 0, "Updating")
-} catch (err) {
-  console.log("Failed to load Adafruit, so we'll fake the display using the console" + err)
-}
 
 function checkForUpdate() {
-  updater.checkForUpdateAndTellHubHowItWorkedOut(rootDir, hubUrl, updateScriptTimeoutSeconds, simulate, setIsUpdating, updateCheckCompleted)
+  updater.checkForUpdateAndTellHubHowItWorkedOut(config.rootDir, config.hubUrl, config.updateScriptTimeoutSeconds, config.simulate)
+    .then((result) => {
+    updateCheckCompleted(result)  
+  })
 }
 
 /**
@@ -93,30 +81,44 @@ function truncate(string, toLength) {
   return string.substring(0, toLength)
 }
 
+function displayStatus(statusRow1, statusRow2, errorMessage) {
+  const row = 9
+  const col = 0
+
+  if (statusRow1) {
+    displayClient.call("writeText", [statusRow1 + "        ", row, col, false, mainDisplayTab])
+  }
+  if (statusRow2) {
+    displayClient.call("writeText", [statusRow2 + "        ", row + 1, col, false, mainDisplayTab])
+  }
+}
+
+function displayError(errorMessage) {
+  displayClient.call("writeText",)
+}
+
 function updateCheckCompleted(err, result) {
   if (err) {
     networkWasDown = true
 
     let errorType = "Error"
     if (err.networkError == true) {
-      errorType = "Network error"
+      displayStatus("Network", "DOWN!")
+      displayError(err.message)
     }
     if (err.updateError == true) {
-      errorType = "Update error"
+      displayStatus("Update", "FAILED!")
+      displayError(err.message)
     }
     showErrorOnDisplay(errorType, err.message)
 
   } else {
-    if (networkWasDown) {
-      networkWasDown = false
-      showTextOnDisplay("Network OK")
-    }
-
+    displayStatus("Network", "OK")
     console.log("Update check completed. ", result)
     checkUpdateInterval(result.newUpdateInterval)
   }
-  console.log("Waiting " + updateIntervalSeconds + " seconds...")
-  setTimeout(checkForUpdate, updateIntervalSeconds * 1000)
+  console.log("Waiting " + config.updateIntervalSeconds + " seconds...")
+  setTimeout(checkForUpdate, config.updateIntervalSeconds * 1000)
 }
 
 function checkUpdateInterval(newUpdateInterval) {
@@ -129,8 +131,8 @@ function checkUpdateInterval(newUpdateInterval) {
       if (newUpdateInterval > maxUpdateIntervalSeconds) {
         newUpdateInterval = maxUpdateIntervalSeconds
       }
-      updateIntervalSeconds = newUpdateInterval
-      console.log("Setting update interval to " + updateIntervalSeconds + " seconds")
+      config.updateIntervalSeconds = newUpdateInterval
+      console.log("Setting update interval to " + config.updateIntervalSeconds + " seconds")
     } catch (err) {
       console.log("Something went wrong while parsing newUpdateInterval (ignoring it and moving on)", newUpdateInterval, err)
     }
@@ -140,23 +142,23 @@ function checkUpdateInterval(newUpdateInterval) {
 }
 
 function generateDeviceIdIfMissing() {
-  const deviceIdFile = path.join(rootDir, "device-id")
+  const deviceIdFile = path.join(config.rootDir, "device-id")
   if (!fs.existsSync(deviceIdFile)) {
-    const deviceId = idGenerator.generateRandomId(deviceIdLength)
+    const deviceId = idGenerator.generateRandomId(config.deviceIdLength)
     fs.writeFileSync(deviceIdFile, deviceId)
     console.log("Created " + deviceIdFile + " with ID " + deviceId)
   }
 }
 
 function createRootDirIfMissing() {
-  if (!fs.existsSync(rootDir)) {
-    fs.mkdirSync(rootDir)
-    console.log("Created root dir: " + rootDir)
+  if (!fs.existsSync(config.rootDir)) {
+    fs.mkdirSync(config.rootDir)
+    console.log("Created root dir: " + config.rootDir)
   }
 }
 
 function setSystemClock() {
-  time.syncSystemClockWithServer(hubUrl)
+  time.syncSystemClockWithServer(config.hubUrl)
 }
 
 function runSpinnerWhenNeeded() {

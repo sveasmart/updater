@@ -17,3 +17,14 @@ simulate: false
 #Max 1 hour, minimum 1 second.
 #Default is 30 minutes. If any update takes longer than that, then something is DEFINITELY wrong!
 updateScriptTimeoutSeconds: 1800
+
+
+# Which port the display RPC server is listening on.
+# https://github.com/sveasmart/display
+displayRpcPort: 5000
+
+# Which tab on the display that we use to write stuff.
+mainDisplayTab: "default"
+
+# Which tab on the display that we show network details
+networkInfoDisplayTab: "networkInfo"

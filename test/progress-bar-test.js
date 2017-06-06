@@ -9,7 +9,7 @@ if (adafruit.hasDriver()) {
 
 const ProgressBar = require("../src/progress-bar")
 
-const progressBar = new ProgressBar(display, 3)
+const progressBar = new ProgressBar(display, 3, 8, "")
 
 console.log("Starting progress bar")
 progressBar.start()

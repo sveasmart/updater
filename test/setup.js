@@ -5,6 +5,7 @@ const chai = require('chai')
 const assert = chai.assert
 
 const testFixture = require("./test-fixture")
+var updater = null
 
 /*
   getUpdater() returns an updater with mocked child_process.
@@ -17,8 +18,7 @@ function getUpdater() {
   const mockery = require('mockery')
   mockery.registerMock('child_process')
 
-  var updater = null
-  
+
   const childProcessMock = {
     execSync: function(command, options) {
       console.log("execSync", command)
@@ -50,6 +50,8 @@ function getUpdater() {
     }
   }
 
+
+
   mockery.registerMock('child_process', childProcessMock)
 
   mockery.enable({
@@ -57,9 +59,12 @@ function getUpdater() {
     warnOnUnregistered: false
   });
 
-  updater = require("../src/updater.js")
+  const Updater = require("../src/updater.js")
+  updater = new Updater("/updatertest", 'http://fakeupdater.com', 1, false)
   updater.lastExecutedFile = null
   updater.lastExecutedFileOptions = null
+
+
 
   mockery.disable()
 

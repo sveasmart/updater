@@ -1,11 +1,8 @@
 const rpc = require('json-rpc2');
 
 /**
- *
- * @param method
- * @param args
- * @param logCalls
- * @returns {Promise}
+ * Makes the given RPC call to the display service.
+ * Returns a promise
  */
 exports.callDisplayOverRpc = function(displayRpcPort, method, args, logCalls = false) {
   console.assert(displayRpcPort, "missing displayRpcPort")

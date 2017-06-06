@@ -75,6 +75,9 @@ class Display {
 
   _call(method, args) {
     callDisplayOverRpc(this.displayRpcPort, method, args, this.logCalls)
+      .catch((err) => {
+        console.log("Failed to call display over RPC", err)
+      })
   }
   
   

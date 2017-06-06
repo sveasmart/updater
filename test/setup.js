@@ -60,7 +60,18 @@ function getUpdater() {
   });
 
   const Updater = require("../src/updater.js")
-  updater = new Updater("/updatertest", 'http://fakeupdater.com', {updateScriptTimeoutSeconds: 1})
+  updater = new Updater("/updatertest", 'http://fakeupdater.com',
+    {
+      updateScriptTimeoutSeconds: 1,
+      onUpdating: function(updating) {
+        if (updating) {
+          updater.onUpdatingWasCalledWithTrue = true
+        } else {
+          updater.onUpdatingWasCalledWithFalse = true
+        }
+      }
+    }
+  )
   updater.lastExecutedFile = null
   updater.lastExecutedFileOptions = null
 

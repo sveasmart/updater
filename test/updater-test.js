@@ -224,5 +224,26 @@ describe('Updater', function() {
   it('can see version number from path', function() {
     assert.equal(util.getVersionNumberFromPath("/bla/yeah/updater-1.0.5"), "v1.0.5")
   })
+  
+  it('doesnt receive onUpdating event unless an update actually happened', function() {
+    //Set it up so that no update is needed
+    testFixture.setDeviceId("deviceA")
+    testFixture.setSnapshotId("1")
+
+    return updater.checkForUpdateAndTellHubHowItWorkedOut().then(function() {
+      expect(updater.onUpdatingWasCalledWithTrue).to.not.be.true
+      expect(updater.onUpdatingWasCalledWithFalse).to.not.be.true
+    })
+  })
+
+  it('Receives onUpdating event when an update was done', function() {
+    //Set it up so an update is needed
+    testFixture.setDeviceId("deviceA")
+    testFixture.setSnapshotId("0")
+    return updater.checkForUpdateAndTellHubHowItWorkedOut().then(function() {
+      expect(updater.onUpdatingWasCalledWithTrue).to.be.true
+      expect(updater.onUpdatingWasCalledWithFalse).to.be.true
+    })
+  })
 
 })

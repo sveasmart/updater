@@ -34,7 +34,7 @@ class Updater {
     this.updateScriptTimeoutSeconds = updateScriptTimeoutSeconds
     this.simulate = simulate
     this.updaterVersion = util.getMyVersionNumber()
-    //this.stateTracker = new Updat
+    this.onUpdating = onUpdating
   }
 
   /*
@@ -246,11 +246,23 @@ class Updater {
       console.log("Will update device " + this._readDeviceId() + " from snapshot " + this._readSnapshotId() + " to " + newSnapshotId + ", using downloadUrl " + downloadUrl)
       console.log("Config: ", configParams)
 
+      this._notifyOnUpdating(true)
       return this._executeUpdate(newSnapshotId, downloadUrl, downloadType, configParams)
+        .then((scriptOutput) => {
+          this._notifyOnUpdating(false)
+          return scriptOutput
+        })
         .catch((err) => {
+          this._notifyOnUpdating(false)
           err.newSnapshotId = newSnapshotId
           throw err
         })
+    }
+  }
+
+  _notifyOnUpdating(updating) {
+    if (this.onUpdating) {
+      this.onUpdating(updating)
     }
   }
 

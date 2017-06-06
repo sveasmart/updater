@@ -20,7 +20,6 @@ exports.callDisplayOverRpc = function(displayRpcPort, method, args, logCalls = f
   return new Promise((resolve, reject) => {
     rpcClient.call(method, args, (err, res) => {
       if (err) {
-        console.log("Failed to RPC-call display " + method + "!")
         reject(err);
       }
       else resolve(res);

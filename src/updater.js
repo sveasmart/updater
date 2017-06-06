@@ -293,7 +293,8 @@ class Updater {
 
   /**
    * Returns a promise that downloads and executes the update script in the zip file at the
-   * given downloadUrl
+   * given downloadUrl.
+   * Returns the output from the script.
    */
   _downloadAndExecuteZipUpdate(newSnapshotId, downloadUrl, configParams) {
     const zipFile = this._getDownloadedFilePath(newSnapshotId, 'download.zip')
@@ -324,6 +325,7 @@ class Updater {
 
   /**
    * Returns a promise that downloads and executes the update script (.sh) at the given downloadUrl
+   * Returns the output from the script.
    */
   _downloadAndExecuteShUpdate(newSnapshotId, downloadUrl, configParams) {
     const shFile = this._getDownloadedFilePath(newSnapshotId, 'update.sh')
@@ -332,12 +334,13 @@ class Updater {
     return util.downloadFile(downloadUrl, shFile)
       .then(() => {
         //OK I got the file! Execute it.
-        this._executeUpdateScript(shFile, newSnapshotId, configParams)
+        return this._executeUpdateScript(shFile, newSnapshotId, configParams)
       })
   }
 
   /**
    * Returns a promise that downloads and executes the update script (.js) at the given downloadUrl
+   * Returns the output from the script.
    */
   _downloadAndExecuteJsUpdate(newSnapshotId, downloadUrl, configParams) {
     const jsFile = this._getDownloadedFilePath(newSnapshotId, 'update.js')
@@ -346,7 +349,7 @@ class Updater {
     return util.downloadFile(downloadUrl, jsFile)
       .then(() => {
         //OK I got the file! Execute it.
-        this._executeUpdateScript(jsFile, newSnapshotId, configParams)
+        return this._executeUpdateScript(jsFile, newSnapshotId, configParams)
       })
   }
 

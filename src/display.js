@@ -26,9 +26,9 @@ class Display {
 
   showNetworkOk() {
     this._writeLineOnMainTab(0, "Network")
-    this._writeLineOnMainTab(1, "OK :)")
+    this._writeLineOnMainTab(1, "OK")
 
-    this._call("setTexts", [["Network OK :)"], this.networkInfoDisplayTab ])
+    this._call("setTexts", [["Network OK"], this.networkInfoDisplayTab ])
 
     this.showDeviceId()
   }
@@ -37,7 +37,7 @@ class Display {
     this._writeLineOnMainTab(0, "NETWORK")
     this._writeLineOnMainTab(1, "ERROR!")
 
-    this._call("setTexts", [["NETWORK ERROR :("], this.networkInfoDisplayTab ])
+    this._call("setTexts", [["NETWORK ERROR"], this.networkInfoDisplayTab ])
     this._call("writeText", [err.message, 0, 1, true, this.networkInfoDisplayTab ])
 
     this.showDeviceId()
@@ -47,7 +47,7 @@ class Display {
     this._writeLineOnMainTab(0, "UPDATE")
     this._writeLineOnMainTab(1, "ERROR!")
 
-    this._call("setTexts", [["UPDATE ERROR :("], this.networkInfoDisplayTab ])
+    this._call("setTexts", [["UPDATE ERROR"], this.networkInfoDisplayTab ])
     this._call("writeText", [err.message, 0, 1, true, this.networkInfoDisplayTab ])
 
     this.showDeviceId()
@@ -61,7 +61,7 @@ class Display {
 
   hideUpdatingProgressBar() {
     this._writeLineOnMainTab(0, "Update")
-    this._writeLineOnMainTab(1, "done :)")
+    this._writeLineOnMainTab(1, "done")
     this._writeLineOnMainTab(2, "")
   }
 

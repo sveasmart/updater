@@ -31,7 +31,6 @@ class Updater {
     this.simulate = simulate
     this.updaterVersion = util.getMyVersionNumber()
     this.onUpdating = onUpdating
-    console.log("this.onUpdating", this.onUpdating)
   }
 
   /*
@@ -312,8 +311,6 @@ class Updater {
         //Now let's call the update.sh script.
         const updateScript = util.findFileInPath(zipParent, 'update.sh')
         if (updateScript) {
-          console.log("Here's what I see in " + zipParent + " after unzipping:")
-          console.log(fs.readdirSync(zipParent).join(","))
           return this._executeUpdateScript(updateScript, newSnapshotId, configParams)
         } else {
           console.log("The zip file didn't contain update.sh! Here's what I see after unzipping: ")
@@ -436,17 +433,7 @@ class Updater {
       body: result
     }
 
-    console.log("calling requestPromise for _tellHubHowItWorkedOut")
     return requestPromise(options)
-      //TEMP
-      .then(() => {
-        console.log("requestPromise for _tellHubHowItWorkedOut succeeded")
-      })
-      //TEMP
-      .catch((err) => {
-        console.log("requestPromise for _tellHubHowItWorkedOut failed. Will rethrow.", err)
-        throw err
-      })
   }
 
   /**

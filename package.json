@@ -5,7 +5,7 @@
   "main": "start.js",
   "scripts": {
     "start": "node src/start.js",
-    "test": "mocha -b --timeout 10000"
+    "test": "mocha -b --timeout 20000"
   },
   "repository": {
     "type": "git",

@@ -24,7 +24,7 @@ updateScriptTimeoutSeconds: 1800
 displayRpcPort: 5000
 
 # Which tab on the display that we use to write stuff.
-mainDisplayTab: "default"
+mainDisplayTab: "tab0"
 
 # Which tab on the display that we show network details
 networkInfoDisplayTab: "tab1"

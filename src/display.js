@@ -18,15 +18,11 @@ class Display {
 
     this.logCalls = logCalls
 
-    this.mainTabColumn = 9
-
-    const progressBarRow = 1
-    this.progressBar = new ProgressBar(this.displayRpcPort, progressBarRow, this.mainTabColumn, "", this.logCalls)
+    this.mainTabColumn = 0
   }
 
   showNetworkOk() {
-    this._writeLineOnMainTab(0, "Network")
-    this._writeLineOnMainTab(1, "OK")
+    this._writeLineOnMainTab(7, "Network OK")
 
     this._call("setTexts", [["Network OK"], this.networkInfoDisplayTab ])
 
@@ -34,8 +30,7 @@ class Display {
   }
 
   showNetworkError(err) {
-    this._writeLineOnMainTab(0, "NETWORK")
-    this._writeLineOnMainTab(1, "ERROR!")
+    this._writeLineOnMainTab(7, "NETWORK ERROR!")
 
     this._call("setTexts", [["NETWORK ERROR"], this.networkInfoDisplayTab ])
     this._call("writeText", [err.message, 0, 1, true, this.networkInfoDisplayTab ])
@@ -44,8 +39,7 @@ class Display {
   }
 
   showUpdateError(err) {
-    this._writeLineOnMainTab(0, "UPDATE")
-    this._writeLineOnMainTab(1, "ERROR!")
+    this._writeLineOnMainTab(7, "UPDATE ERROR!")
 
     this._call("setTexts", [["UPDATE ERROR"], this.networkInfoDisplayTab ])
     this._call("writeText", [err.message, 0, 1, true, this.networkInfoDisplayTab ])
@@ -54,26 +48,17 @@ class Display {
   }
   
   showUpdatingProgressBar() {
-    this._writeLineOnMainTab(0, "Doing")
-    this._writeLineOnMainTab(1, "update")
-    this._writeLineOnMainTab(2, ".....")
+    this._writeLineOnMainTab(7, "Updating...")
   }
 
   hideUpdatingProgressBar() {
-    this._writeLineOnMainTab(0, "Update")
-    this._writeLineOnMainTab(1, "done")
-    this._writeLineOnMainTab(2, "")
+    this._writeLineOnMainTab(7, "Update done!")
   }
-
 
   showDeviceId() {
     const deviceIdUpperCase = this.deviceId.toUpperCase()
-    const firstHalf = deviceIdUpperCase.substr(0, 5)
-    const secondHalf = deviceIdUpperCase.substr(5)
 
-    this._writeLineOnMainTab(5, 'Device:')
-    this._writeLineOnMainTab(6, firstHalf)
-    this._writeLineOnMainTab(7, secondHalf)
+    this._writeLineOnMainTab(6, 'ID: ' + deviceIdUpperCase)
   }
   
   _writeLineOnMainTab(row, text) {

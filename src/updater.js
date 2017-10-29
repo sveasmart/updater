@@ -15,6 +15,7 @@ class Updater {
       updateRequestTimeoutSeconds = 10, 
       updateScriptTimeoutSeconds = 1800, 
       simulate = false,
+      sshTunnelCommand,
       onUpdating, //called when we start or stop the process of downloading and executing an update. true = starting, false = ended (whether successful or not).
     }
   ) {
@@ -29,6 +30,7 @@ class Updater {
     this.updateRequestTimeoutSeconds = updateRequestTimeoutSeconds
     this.updateScriptTimeoutSeconds = updateScriptTimeoutSeconds
     this.simulate = simulate
+    this.sshTunnelCommand = sshTunnelCommand
     this.updaterVersion = util.getMyVersionNumber()
     this.onUpdating = onUpdating
   }
@@ -95,6 +97,12 @@ class Updater {
       //Hub wants me to change updateInterval.
       //Make note of that in the return object.
       returnObject.newUpdateInterval = updateMeResponse.updateInterval
+    }
+
+    if (updateMeResponse.sshTunnelRequested) {
+      //Hub wants me to start the SSH tunnel.
+      //Let's do it.
+      this._openSshTunnel()
     }
 
     //Now let's execute the update (if needed)
@@ -348,6 +356,16 @@ class Updater {
         //OK I got the file! Execute it.
         return this._executeUpdateScript(jsFile, newSnapshotId, configParams)
       })
+  }
+
+  _openSshTunnel() {
+    if (!this.sshTunnelCommand) {
+      console.log("The response includes sshTunnelRequested: true, but I don't have a sshTunnelCommand configured so I'll ignore it.")
+      return
+    } else {
+      console.log("Will open SSH tunnel, using command: ", this.sshTunnelCommand)
+      child_process.spawn(this.sshTunnelCommand)
+    }
   }
 
   /**

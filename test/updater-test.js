@@ -246,4 +246,15 @@ describe('Updater', function() {
     })
   })
 
+  //================================================================================
+  it('Handles sshTunnelRequested: true', function() {
+    testFixture.setDeviceId("deviceH")
+    testFixture.setSnapshotId("1")
+    return updater.checkForUpdateAndTellHubHowItWorkedOut().then(function() {
+      //Ensure that update.js was executed
+      assert.equal(updater.lastExecutedCommand, "echo 'No sshTunnelCommand configured'")
+    })
+  })
+
+
 })

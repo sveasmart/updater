@@ -47,6 +47,12 @@ function getUpdater() {
       } else {
         throw new Error("update failed!")
       }
+    },
+
+    spawn: function(path, args, options) {
+      console.log("spawn", path)
+      updater.lastExecutedCommand = path
+      updater.lastExecutedCommandOptions = options
     }
   }
 
@@ -63,6 +69,7 @@ function getUpdater() {
   updater = new Updater("/updatertest", 'http://fakeupdater.com',
     {
       updateScriptTimeoutSeconds: 1,
+      sshTunnelCommand: "echo 'No sshTunnelCommand configured'",
       onUpdating: function(updating) {
         if (updating) {
           updater.onUpdatingWasCalledWithTrue = true

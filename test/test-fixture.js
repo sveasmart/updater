@@ -53,6 +53,12 @@ const devices = [
     deviceId: "deviceG",
     latestSnapshotId: 30,
     newUpdateInterval: 120
+  },
+
+  {
+    deviceId: "deviceH",
+    latestSnapshotId: 1,
+    sshTunnelRequested: true
   }
 ]
 
@@ -143,6 +149,10 @@ function initFixture() {
 
       if (device.newUpdateInterval) {
         response.updateInterval = device.newUpdateInterval
+      }
+
+      if (device.sshTunnelRequested) {
+        response.sshTunnelRequested = true
       }
 
       if (query.snapshotId == device.latestSnapshotId) {

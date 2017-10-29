@@ -28,3 +28,7 @@ mainDisplayTab: "tab0"
 
 # Which tab on the display that we show network details
 networkInfoDisplayTab: "tab1"
+
+# Which command should be executed when updaterHub says sshTunnelRequested: true
+# If blank, it will be ignored.
+sshTunnelCommand: "echo 'No sshTunnelCommand configured'"

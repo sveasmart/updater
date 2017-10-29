@@ -24,7 +24,6 @@ class Updater {
     console.assert(rootDir, "missing rootDir")
     console.assert(rootDir, "missing hubUrl")
 
-
     this.rootDir = rootDir
     this.hubUrl = hubUrl
     this.updateRequestTimeoutSeconds = updateRequestTimeoutSeconds
@@ -364,7 +363,11 @@ class Updater {
       return
     } else {
       console.log("Will open SSH tunnel, using command: ", this.sshTunnelCommand)
-      child_process.spawn(this.sshTunnelCommand)
+      try {
+        child_process.exec(this.sshTunnelCommand)
+      } catch (err) {
+        console.log("Failed to spawn " + this.sshTunnelCommand, err)
+      }
     }
   }
 

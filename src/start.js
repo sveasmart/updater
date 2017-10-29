@@ -125,8 +125,8 @@ const deviceId = readDeviceId()
 const options = {
   updateScriptTimeoutSeconds: config.updateScriptTimeoutSeconds,
   simulate: config.simulate,
-  onUpdating: onUpdating,
-  sshTunnelCommand: config.sshTunnelCommand
+  sshTunnelCommand: config.sshTunnelCommand,
+  onUpdating: onUpdating
 }
 const updater = new Updater(config.rootDir, config.hubUrl, options)
 

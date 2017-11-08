@@ -5,6 +5,8 @@ const path = require('path')
 const Updater = require('./updater')
 const DisplayClient = require("./display")
 const idGenerator = require('./id-generator')
+const child_process = require('child_process')
+
 
 
 const config = require('./updater-config').loadConfig()
@@ -100,10 +102,28 @@ function readDeviceId() {
   if (fs.existsSync(deviceIdFile)) {
     deviceId = fs.readFileSync(deviceIdFile).toString()
   } else {
-    deviceId = idGenerator.generateRandomId(config.deviceIdLength)
-    fs.writeFileSync(deviceIdFile, deviceId)
-    console.log("Created " + deviceIdFile + " with ID " + deviceId)
+    deviceId = generateDeviceIdAndSave()
   }
+  return deviceId
+}
+
+function generateDeviceIdAndSave() {
+  const deviceIdFile = path.join(config.rootDir, "device-id")
+  const deviceId = idGenerator.generateRandomId(config.deviceIdLength)
+  fs.writeFileSync(deviceIdFile, deviceId)
+  console.log("Created " + deviceIdFile + " with ID " + deviceId)
+  if (config.scriptToCallWhenDeviceIdHasBeenSet) {
+    console.log("Will execute script: ", config.scriptToCallWhenDeviceIdHasBeenSet)
+    try {
+      const scriptWithArgument = config.scriptToCallWhenDeviceIdHasBeenSet + " " + deviceId
+      child_process.exec(scriptWithArgument)
+      console.log("Sucessfully executed script " + scriptWithArgument)
+    } catch (err) {
+      console.log("Failed to execute script " + scriptWithArgument, err)
+    }
+
+  }
+
   return deviceId
 }
 

@@ -14,7 +14,7 @@ var updater = null
  Also sets updater.lastExecutedFileOptions
  See https://nodejs.org/api/child_process.html#child_process_child_process_execfilesync_file_args_options
  */
-function getUpdater() {
+function getUpdater(extraConfigParams) {
   const mockery = require('mockery')
   mockery.registerMock('child_process')
 
@@ -66,19 +66,24 @@ function getUpdater() {
   });
 
   const Updater = require("../src/updater.js")
-  updater = new Updater("/updatertest", 'http://fakeupdater.com',
-    {
-      updateScriptTimeoutSeconds: 1,
-      sshTunnelCommand: "echo 'No sshTunnelCommand configured'",
-      onUpdating: function(updating) {
-        if (updating) {
-          updater.onUpdatingWasCalledWithTrue = true
-        } else {
-          updater.onUpdatingWasCalledWithFalse = true
-        }
+  
+  const config = {
+    updateScriptTimeoutSeconds: 1,
+    sshTunnelCommand: "echo 'No sshTunnelCommand configured'",
+    onUpdating: function(updating) {
+      if (updating) {
+        updater.onUpdatingWasCalledWithTrue = true
+      } else {
+        updater.onUpdatingWasCalledWithFalse = true
       }
     }
-  )
+  }
+  
+  if (extraConfigParams && extraConfigParams.scriptToCallWhenDeviceIdHasBeenSet) {
+    config.scriptToCallWhenDeviceIdHasBeenSet = extraConfigParams.scriptToCallWhenDeviceIdHasBeenSet
+  }
+  
+  updater = new Updater("/updatertest", 'http://fakeupdater.com', config)
   updater.lastExecutedFile = null
   updater.lastExecutedFileOptions = null
 

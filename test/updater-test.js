@@ -256,5 +256,10 @@ describe('Updater', function() {
     })
   })
 
+  //================================================================================
+  it.only('Handles scriptToCallWhenDeviceIdHasBeenSet', function() {
+    const updater = setup.getUpdater({scriptToCallWhenDeviceIdHasBeenSet: "bla"})
+    assert.equal(updater.lastExecutedCommand, "bla")
+  })
 
 })

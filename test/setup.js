@@ -49,8 +49,8 @@ function getUpdater() {
       }
     },
 
-    spawn: function(path, args, options) {
-      console.log("spawn", path)
+    exec: function(path, args, options) {
+      console.log("exec", path)
       updater.lastExecutedCommand = path
       updater.lastExecutedCommandOptions = options
     }

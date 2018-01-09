@@ -18,15 +18,17 @@ simulate: false
 #Default is 30 minutes. If any update takes longer than that, then something is DEFINITELY wrong!
 updateScriptTimeoutSeconds: 1800
 
-
 # Which port the display RPC server is listening on.
 # https://github.com/sveasmart/display
+# ... or leave it blank if we should just use console.log instead of trying to talk to a display
 displayRpcPort: 5000
 
-# Which tab on the display that we use to write stuff.
+# Which tab on the display that we use to write stuff
+# (only relevant if displayRpcPort is given)
 mainDisplayTab: "tab0"
 
 # Which tab on the display that we show network details
+# (only relevant if displayRpcPort is given)
 networkInfoDisplayTab: "tab1"
 
 # Which command should be executed when updaterHub says sshTunnelRequested: true

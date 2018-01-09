@@ -48,7 +48,6 @@ function checkForUpdate() {
  * So I'll show a progress bar.
  */
 function onUpdating(updating) {
-  console.log("onUpdating called", updating)
   if (updating) {
     display.showUpdatingProgressBar()
   } else {

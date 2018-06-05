@@ -35,6 +35,19 @@ class Display {
 
   }
 
+  showNetworkConnecting() {
+    if (!this.displayRpcPort) {
+      console.log("Connecting...")
+      return
+    }
+
+    this._writeLineOnMainTab(7, "Connecting...")
+
+    this._call("setTexts", [["Connecting..."], this.networkInfoDisplayTab ])
+
+    this.showDeviceId()
+  }
+
   showNetworkOk() {
     if (!this.displayRpcPort) {
       console.log("Network OK")

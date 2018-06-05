@@ -19,6 +19,7 @@ if (config.simulate) {
 
 
 function checkForUpdate() {
+  display.showNetworkConnecting()
   updater.checkForUpdateAndTellHubHowItWorkedOut()
     .then((result) => {
       display.showNetworkOk()
@@ -154,6 +155,7 @@ const display = new DisplayClient(deviceId, config.displayRpcPort, config.mainDi
 display.showDeviceId()
 
 setSystemClock()
+
 checkForUpdate()
 
 

@@ -3,11 +3,9 @@ const time = require('./time')
 const fs = require('fs')
 const path = require('path')
 const Updater = require('./updater')
-const DisplayClient = require("./display")
+const Display = require("./display")
 const idGenerator = require('./id-generator')
 const child_process = require('child_process')
-
-
 
 const config = require('./updater-config').loadConfig()
 
@@ -17,7 +15,6 @@ if (config.simulate) {
   console.log("simulate == true, so I will only pretend to execute local update scripts.")
 }
 
-
 function checkForUpdate() {
   display.showNetworkConnecting()
   updater.checkForUpdateAndTellHubHowItWorkedOut()
@@ -26,7 +23,7 @@ function checkForUpdate() {
       console.log("Update check completed. ", result)
       checkUpdateInterval(result.newUpdateInterval)
 
-      console.log("Waiting " + config.updateIntervalSeconds + " seconds...")
+      console.log("Waiting " + config.updateIntervalSeconds + " seconds until next update check...")
       setTimeout(checkForUpdate, config.updateIntervalSeconds * 1000)
 
     })
@@ -38,10 +35,9 @@ function checkForUpdate() {
         display.showUpdateError(err)
       }
       
-      console.log("Waiting " + config.updateIntervalSeconds + " seconds...")
+      console.log("Waiting " + config.updateIntervalSeconds + " seconds until next update check...")
       setTimeout(checkForUpdate, config.updateIntervalSeconds * 1000)
     })
-
 }
 
 /**
@@ -50,9 +46,9 @@ function checkForUpdate() {
  */
 function onUpdating(updating) {
   if (updating) {
-    display.showUpdatingProgressBar()
+    display.showUpdating()
   } else {
-    display.hideUpdatingProgressBar()
+    display.showUpdateDone()
   }
 }
 
@@ -134,6 +130,14 @@ function createRootDirIfMissing() {
   }
 }
 
+function startDisplayResendLoop(display) {
+  if (config.displayResendIntervalSeconds) {
+    setInterval(function() {
+      display.resendStatusToDisplayIfLastAttemptFailed()
+    }, config.displayResendIntervalSeconds * 1000)
+  }
+}
+
 function setSystemClock() {
   time.syncSystemClockWithServer(config.hubUrl)
 }
@@ -150,7 +154,9 @@ const options = {
 }
 const updater = new Updater(config.rootDir, config.hubUrl, options)
 
-const display = new DisplayClient(deviceId, config.displayRpcPort, config.mainDisplayTab, config.networkInfoDisplayTab, true)
+const display = new Display(deviceId, config.displayRpcPort, config.mainDisplayTab, config.networkInfoDisplayTab, config.logDisplayCalls)
+startDisplayResendLoop(display)
+
 
 display.showDeviceId()
 

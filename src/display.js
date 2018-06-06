@@ -1,6 +1,5 @@
 const Promise = require('promise')
-const ProgressBar = require('./progress-bar')
-const callDisplayOverRpc = require('./display-util').callDisplayOverRpc
+const DisplayRpcClient = require('./display-rpc-client')
 
 /**
  * I know how to display stuff. Updater tells me what's going on, and I make sure it is displayed correctly.
@@ -29,6 +28,10 @@ class Display {
 
       this.mainTabColumn = 0
 
+      this.updaterStatus = "Starting up..."
+      this.updaterError = null
+      this.wasLastDisplayCallSuccessful = false
+
     } else {
       console.log("No displayRpcPort set, so I will use console.log")
     }
@@ -36,88 +39,73 @@ class Display {
   }
 
   showNetworkConnecting() {
-    if (!this.displayRpcPort) {
-      console.log("Connecting...")
-      return
-    }
-
-    this._writeLineOnMainTab(7, "Connecting...")
-
-    this._call("setTexts", [["Connecting..."], this.networkInfoDisplayTab ])
-
-    this.showDeviceId()
+    this._setStatusAndSendToDisplay("Connecting...")
   }
 
   showNetworkOk() {
-    if (!this.displayRpcPort) {
-      console.log("Network OK")
-      return
-    }
-
-    this._writeLineOnMainTab(7, "Network OK")
-
-    this._call("setTexts", [["Network OK"], this.networkInfoDisplayTab ])
-
-    this.showDeviceId()
+    this._setStatusAndSendToDisplay("Network OK")
   }
 
   showNetworkError(err) {
-    if (!this.displayRpcPort) {
-      console.log("NETWORK ERROR", err)
-      return
-    }
-
-    this._writeLineOnMainTab(7, "NETWORK ERROR!")
-
-    this._call("setTexts", [["NETWORK ERROR"], this.networkInfoDisplayTab ])
-    this._call("writeText", [err.message, 0, 1, true, this.networkInfoDisplayTab ])
-
-    this.showDeviceId()
+    this._setStatusAndSendToDisplay("NETWORK ERROR", err)
   }
 
   showUpdateError(err) {
-    if (!this.displayRpcPort) {
-      console.log("UPDATE ERROR", err)
-      return
-    }
-
-    this._writeLineOnMainTab(7, "UPDATE ERROR!")
-
-    this._call("setTexts", [["UPDATE ERROR"], this.networkInfoDisplayTab ])
-    this._call("writeText", [err.message, 0, 1, true, this.networkInfoDisplayTab ])
-
-    this.showDeviceId()
+    this._setStatusAndSendToDisplay("UPDATE ERROR", err)
   }
   
-  showUpdatingProgressBar() {
-    if (!this.displayRpcPort) {
-      console.log("Updating...")
-      return
-    }
-
-
-    this._writeLineOnMainTab(7, "Updating...")
+  showUpdating() {
+    this._setStatusAndSendToDisplay("Updating...")
   }
 
-  hideUpdatingProgressBar() {
-    if (!this.displayRpcPort) {
-      console.log("Update done!")
-      return
-    }
-    this._writeLineOnMainTab(7, "Update done!")
+  showUpdateDone() {
+    this._setStatusAndSendToDisplay("Update done!")
   }
 
   showDeviceId() {
+    this._sendStatusToDisplay()
+  }
+
+  resendStatusToDisplayIfLastAttemptFailed() {
+    if (!this.wasLastDisplayCallSuccessful) {
+      console.log("Last RPC-call to display failed, so I'm trying again now.")
+      this._sendStatusToDisplay()
+    }
+  }
+
+  _setStatusAndSendToDisplay(status, error) {
+    this.updaterStatus = status
+    this.updaterError = error
+    this._sendStatusToDisplay()
+  }
+  
+  /*
+    Sends the current status to the display.
+    This is the ONLY public method that uses _call(...).
+    The other methods above just update the status, and then call this method.
+   */
+  _sendStatusToDisplay() {
     if (!this.displayRpcPort) {
-      console.log("ID: " + this.deviceId.toUpperCase())
+      console.log(this.updaterStatus, this.updaterError)
       return
     }
 
-    const deviceIdUpperCase = this.deviceId.toUpperCase()
+    //Write the current status on row 7 of the main tab
+    this._writeLineOnMainTab(7, this.updaterStatus)
 
+    //Also write the current status on the network info tab (+ clear that tab)
+    this._call("setTexts", [[this.updaterStatus], this.networkInfoDisplayTab ])
+
+    if (this.updaterError) {
+      //Oh, we have an error. Let's write that on the network info tab as well, with word wrap.
+      this._call("writeText", [this.updaterError.message, 0, 1, true, this.networkInfoDisplayTab ])
+    }
+
+    //We aways write deviceId as well.
+    const deviceIdUpperCase = this.deviceId.toUpperCase()
     this._writeLineOnMainTab(6, 'ID: ' + deviceIdUpperCase)
   }
-  
+
   _writeLineOnMainTab(row, text) {
     const col = this.mainTabColumn
     const rowLength = 16 - col
@@ -128,14 +116,22 @@ class Display {
     this._call("writeText", [text, col, row, false, this.mainDisplayTab])
   }
 
+
+
+  /*
+    Triggers the RPC call to the display app.
+    This is the ONLY method that talks to DisplayRpcClient and does that.
+   */
   _call(method, args) {
-    callDisplayOverRpc(this.displayRpcPort, method, args, this.logCalls)
+    const displayRpcClient = new DisplayRpcClient(this.displayRpcPort, this.logCalls)
+    displayRpcClient.call(method, args)
+      .then(() => {
+        this.wasLastDisplayCallSuccessful = true
+      })
       .catch((err) => {
-        console.log("Failed to call display over RPC (probably temporary): " + err)
+        this.wasLastDisplayCallSuccessful = false
       })
   }
-  
-  
 }
 
 module.exports = Display

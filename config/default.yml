@@ -23,6 +23,13 @@ updateScriptTimeoutSeconds: 1800
 # ... or leave it blank if we should just use console.log instead of trying to talk to a display
 displayRpcPort: 5000
 
+# If we fail to contact the display app, how often should we retry?
+# 0 or blank means never.
+displayResendIntervalSeconds: 5
+
+# True if calls to the display should be logged
+logDisplayCalls: true
+
 # Which tab on the display that we use to write stuff
 # (only relevant if displayRpcPort is given)
 mainDisplayTab: "tab0"

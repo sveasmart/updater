@@ -131,7 +131,7 @@ function createRootDirIfMissing() {
 }
 
 function startDisplayResendLoop(display) {
-  if (config.displayResendIntervalSeconds) {
+  if (config.displayResendIntervalSeconds && config.displayRpcPort) {
     setInterval(function() {
       display.resendStatusToDisplayIfLastAttemptFailed()
     }, config.displayResendIntervalSeconds * 1000)

@@ -40,7 +40,7 @@ class Display {
   }
 
   showNetworkOk() {
-    this._setStatusAndSendToDisplay("Network OK")
+    this._setStatusAndSendToDisplay("Connected")
   }
 
   showNetworkError(err) {

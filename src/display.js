@@ -86,7 +86,11 @@ class Display {
    */
   _sendStatusToDisplay() {
     if (!this.displayRpcPort) {
-      console.log(this.updaterStatus, this.updaterError)
+      if (this.updaterError) {
+        console.log(this.updaterStatus, this.updaterError)
+      } else {
+        console.log(this.updaterStatus)
+      }
       return
     }
 

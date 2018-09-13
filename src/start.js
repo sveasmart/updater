@@ -134,7 +134,7 @@ const options = {
 }
 const updater = new Updater(config.rootDir, config.hubUrl, options)
 
-const display = new Display(deviceId, config.displayRpcPort, config.mainDisplayTab, config.networkInfoDisplayTab, config.logDisplayCalls)
+const display = new Display(deviceId, config.displayRpcPort, config.mainDisplayTab, config.logDisplayCalls)
 startDisplayResendLoop(display)
 
 

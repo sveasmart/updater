@@ -32,7 +32,6 @@ exports.loadConfig = function() {
     logDisplayCalls: getBool("logDisplayCalls"),
 
     mainDisplayTab: config.get("mainDisplayTab"),
-    networkInfoDisplayTab: config.get("networkInfoDisplayTab"),
     sshTunnelCommand: config.get("sshTunnelCommand"),
     scriptToCallWhenDeviceIdHasBeenSet: config.get("scriptToCallWhenDeviceIdHasBeenSet")
   }

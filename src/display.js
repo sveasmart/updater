@@ -10,7 +10,7 @@ const DisplayRpcClient = require('./display-rpc-client')
  * If displayRpcPort is not given (or falsy), then I'll just log to the local console.
  */
 class Display {
-  constructor(deviceId, displayRpcPort, mainDisplayTab, networkInfoDisplayTab, logCalls = true) {
+  constructor(deviceId, displayRpcPort, mainDisplayTab, logCalls = true) {
     this.deviceId = deviceId
     console.assert(deviceId, "missing deviceId param")
 
@@ -20,9 +20,6 @@ class Display {
 
       this.mainDisplayTab = mainDisplayTab
       console.assert(mainDisplayTab, "missing mainDisplayTab param")
-
-      this.networkInfoDisplayTab = networkInfoDisplayTab
-      console.assert(networkInfoDisplayTab, "missing networkInfoDisplayTab param")
 
       this.logCalls = logCalls
 
@@ -96,14 +93,6 @@ class Display {
 
     //Write the current status on row 7 of the main tab
     this._writeLineOnMainTab(7, this.updaterStatus)
-
-    //Also write the current status on the network info tab (+ clear that tab)
-    this._call("setTexts", [[this.updaterStatus], this.networkInfoDisplayTab ])
-
-    if (this.updaterError) {
-      //Oh, we have an error. Let's write that on the network info tab as well, with word wrap.
-      this._call("writeText", [this.updaterError.message, 0, 1, true, this.networkInfoDisplayTab ])
-    }
 
     //We aways write deviceId as well.
     const deviceIdUpperCase = this.deviceId.toUpperCase()

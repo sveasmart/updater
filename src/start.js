@@ -52,26 +52,6 @@ function onUpdating(updating) {
   }
 }
 
-function truncate(string, toLength) {
-  return string.substring(0, toLength)
-}
-
-function displayStatus(statusRow1, statusRow2, errorMessage) {
-  const row = 9
-  const col = 0
-
-  if (statusRow1) {
-    display.call("writeText", [statusRow1 + "        ", row, col, false, config.mainDisplayTab])
-  }
-  if (statusRow2) {
-    display.call("writeText", [statusRow2 + "        ", row + 1, col, false, config.mainDisplayTab])
-  }
-}
-
-function displayError(errorMessage) {
-  display.call("writeText", [errorMessage])
-}
-
 function checkUpdateInterval(newUpdateInterval) {
   if (newUpdateInterval) {
     try {

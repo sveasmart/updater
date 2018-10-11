@@ -5,6 +5,8 @@ const Archiver = require('archiver'); //Creates ZIP files
 const url = require('url');
 const querystring = require('querystring');
 
+const testUtil = require('./test-util')
+
 //This represents the Hub's view of the world
 const devices = [
   {
@@ -114,14 +116,14 @@ function publishZipFile(fileName, subFileName, subFileContent, subFileIsInSubFol
 function publishShFile(fileName) {
   nock('http://download.fakeupdater.com')
     .get("/" + fileName)
-    .replyWithFile(200, "/serverstuff/update.sh")
+    .replyWithFile(200, testUtil.serverFilesDir + "/update.sh")
 }
 
 
 function publishJsFile(fileName) {
   nock('http://download.fakeupdater.com')
     .get("/" + fileName)
-    .replyWithFile(200, "/serverstuff/update.js")
+    .replyWithFile(200, testUtil.serverFilesDir + "/update.js")
 }
 
 function getDevice(deviceId) {
@@ -188,15 +190,15 @@ function getLastLog(deviceId) {
 }
 
 function setDeviceId(deviceId) {
-  fs.writeFileSync("/updatertest/device-id", deviceId)
+  fs.writeFileSync(testUtil.updaterRootDir + "/device-id", deviceId)
 }
 
 function setSnapshotId(snapshotId) {
-  fs.writeFileSync("/updatertest/snapshot-id", snapshotId)
+  fs.writeFileSync(testUtil.updaterRootDir + "/snapshot-id", snapshotId)
 }
 
 function getSnapshotId() {
-  return fs.readFileSync("/updatertest/snapshot-id").toString()
+  return fs.readFileSync(testUtil.updaterRootDir + "/snapshot-id").toString()
 }
 
 exports.setDeviceId = setDeviceId

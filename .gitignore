@@ -3,6 +3,8 @@ config/local.yml
 # default root dir when running the updater
 updaterroot
 
+tempTestFiles
+
 # IDEA
 .idea
 

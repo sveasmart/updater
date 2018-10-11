@@ -17,7 +17,6 @@ chai.config.showDiff = true
 
 const fs = require('fs') //File system interaction
 const setup = require('./setup.js') //Contains low-level test setup stuff
-const nock = require('nock')
 
 var updater = null
 var checkForUpdateAndTellHubHowItWorkedOut = null
@@ -25,6 +24,8 @@ var checkForUpdateAndTellHubHowItWorkedOut = null
 const testUtil = require('./test-util')
 const testFixture = require('./test-fixture')
 const util = require('../src/util')
+
+const rootDir = testUtil.updaterRootDir
 
 
 //An in-memory integration test that checks if the updater works, end-to-end.
@@ -34,12 +35,15 @@ describe('Updater', function() {
 
   //=================================================================================
   beforeEach(function() {
-    testUtil.initMocks()
-    testFixture.initFixture()
-    testFixture.shouldNextUpdateScriptSucceed = true  //TODO not sure why I couldn't do this inside initFixture, but it didn't work for some reason
-
     updater = setup.getUpdater()
 
+    testUtil.initTestFiles()
+    testFixture.initFixture()
+    testFixture.shouldNextUpdateScriptSucceed = true  //TODO not sure why I couldn't do this inside initFixture, but it didn't work for some reason
+  })
+
+  afterEach(function() {
+    testUtil.removeTestFiles()
   })
 
   //================================================================================
@@ -70,16 +74,16 @@ describe('Updater', function() {
 
     return updater.checkForUpdateAndTellHubHowItWorkedOut().then(function() {
       //Ensure that it created a snapshot-id file
-      assert.isOk(fs.existsSync("/updatertest/snapshot-id"))
-      const snapshotId = fs.readFileSync("/updatertest/snapshot-id")
+      assert.isOk(fs.existsSync(rootDir + "/snapshot-id"))
+      const snapshotId = fs.readFileSync(rootDir + "/snapshot-id")
       assert.equal(snapshotId, '1')
 
-      //Ensure that the file was downloaded to /updatertest/downloads
-      assert.isOk(fs.existsSync("/updatertest/downloads/1/download.zip"))
-      assert.isOk(fs.existsSync("/updatertest/downloads/1/update.sh"))
+      //Ensure that the file was downloaded to /downloads
+      assert.isOk(fs.existsSync(rootDir + "/downloads/1/download.zip"))
+      assert.isOk(fs.existsSync(rootDir + "/downloads/1/update.sh"))
 
       //Ensure that update.sh was executed
-      assert.equal(updater.lastExecutedCommand, "/updatertest/downloads/1/update.sh")
+      assert.equal(updater.lastExecutedCommand, rootDir + "/downloads/1/update.sh")
 
     }).catch((err) => {
       console.log("failed", err)
@@ -133,7 +137,7 @@ describe('Updater', function() {
     return updater.checkForUpdateAndTellHubHowItWorkedOut().then(function() {
       //Ensure that the environment variable was set
       assert.isOk(process.env)
-      assert.equal(process.env.apps_root, "/updatertest/apps")
+      assert.equal(process.env.apps_root, rootDir + "/apps")
     })
   })
 
@@ -144,7 +148,7 @@ describe('Updater', function() {
       //Ensure that the environment variable was set
       console.log("Y updater.lastExecutedCommandOptions", updater.lastExecutedCommandOptions)
       assert.isOk(updater.lastExecutedCommandOptions.cwd)
-      assert.equal(updater.lastExecutedCommandOptions.cwd, "/updatertest/downloads/1")
+      assert.equal(updater.lastExecutedCommandOptions.cwd, rootDir + "/downloads/1")
     })
   })
 
@@ -171,7 +175,7 @@ describe('Updater', function() {
     testFixture.setDeviceId("deviceD")
     return updater.checkForUpdateAndTellHubHowItWorkedOut().then(function() {
       //Ensure that update.sh was executed
-      assert.equal(updater.lastExecutedCommand, "/updatertest/downloads/5/stuff/update.sh")
+      assert.equal(updater.lastExecutedCommand, rootDir + "/downloads/5/stuff/update.sh")
     })
   })
 
@@ -180,7 +184,7 @@ describe('Updater', function() {
     testFixture.setDeviceId("deviceE")
     return updater.checkForUpdateAndTellHubHowItWorkedOut().then(function() {
       //Ensure that update.sh was executed
-      assert.equal(updater.lastExecutedCommand, "/updatertest/downloads/7/update.sh")
+      assert.equal(updater.lastExecutedCommand, rootDir + "/downloads/7/update.sh")
     })
   })
 
@@ -189,7 +193,7 @@ describe('Updater', function() {
     testFixture.setDeviceId("deviceF")
     return updater.checkForUpdateAndTellHubHowItWorkedOut().then(function() {
       //Ensure that update.js was executed
-      assert.equal(updater.lastExecutedCommand, "node /updatertest/downloads/8/update.js")
+      assert.equal(updater.lastExecutedCommand, "node " + rootDir + "/downloads/8/update.js")
     })
   })
   
@@ -199,7 +203,7 @@ describe('Updater', function() {
     return updater.checkForUpdateAndTellHubHowItWorkedOut().then(function(err) {
 
       //Ensure that update.js was executed
-      assert.equal(updater.lastExecutedCommand, "node /updatertest/downloads/8/update.js")
+      assert.equal(updater.lastExecutedCommand, "node " + rootDir + "/downloads/8/update.js")
       const configString = process.env.config
       const config = JSON.parse(configString)
 

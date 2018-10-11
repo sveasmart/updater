@@ -5,6 +5,8 @@ const chai = require('chai')
 const assert = chai.assert
 
 const testFixture = require("./test-fixture")
+const testUtil = require('./test-util')
+
 var updater = null
 
 /*
@@ -83,7 +85,7 @@ function getUpdater(extraConfigParams) {
     config.scriptToCallWhenDeviceIdHasBeenSet = extraConfigParams.scriptToCallWhenDeviceIdHasBeenSet
   }
   
-  updater = new Updater("/updatertest", 'http://fakeupdater.com', config)
+  updater = new Updater(testUtil.updaterRootDir, 'http://fakeupdater.com', config)
   updater.lastExecutedFile = null
   updater.lastExecutedFileOptions = null
 

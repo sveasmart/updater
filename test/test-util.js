@@ -1,28 +1,35 @@
 //This module encapsulates some low level stuff
 //so that the test cases can stay high level and easy to read.
 
-const chai = require('chai')
-const assert = chai.assert
-const mocha = require("mocha")
-
 const fs = require('fs') //File system interaction
-const nock = require('nock') //Mocks all http requests
-const Archiver = require('archiver'); //Creates ZIP files
+const path = require('path')
 
-function initMocks() {
-  //Create a fake in-memory file system
-  this.mockFileSystem = require('mock-fs') //Mocks all filesystem access using a fake in-memory fileystem
-  this.mockFileSystem({
-    '/updatertest': { //Note - this call fails if a REAL folder with this name exists in the filesystem.
-      'device-id': 'deviceA'
-    },
-    '/serverstuff': {
-      'update.sh': 'echo $COLOR',
-      'update.js': 'console.log("config ", JSON.parse(process.env.config))'
-    }
-  })
-  assert.isOk(fs.existsSync("/updatertest"))
-  assert.isOk(fs.existsSync("/updatertest/device-id"))
+const testFilesDir =   path.resolve(__dirname, "..", "tempTestFiles")
+const updaterRootDir = path.resolve(testFilesDir, "updaterroot")
+const serverFilesDir = path.resolve(testFilesDir, "serverstuff")
+
+const rmdirRecursiveSync = require('rmdir-recursive').sync
+
+function initTestFiles() {
+  removeTestFiles()
+  
+  fs.mkdirSync(testFilesDir)
+
+  fs.mkdirSync(updaterRootDir)
+  fs.appendFileSync(updaterRootDir + "/device-id", "deviceA")
+
+  fs.mkdirSync(serverFilesDir)
+  fs.appendFileSync(serverFilesDir + "/update.sh", "echo $COLOR")
+  fs.appendFileSync(serverFilesDir + "/update.js", 'console.log("config ", JSON.parse(process.env.config))')
 }
 
-exports.initMocks = initMocks
+function removeTestFiles() {
+  rmdirRecursiveSync(testFilesDir)
+}
+
+exports.initTestFiles = initTestFiles
+exports.removeTestFiles = removeTestFiles
+
+exports.testFilesDir = testFilesDir
+exports.updaterRootDir = updaterRootDir
+exports.serverFilesDir = serverFilesDir

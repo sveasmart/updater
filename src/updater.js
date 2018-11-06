@@ -74,7 +74,7 @@ class Updater {
         return this._handleUpdateMeResponse(updateMeResponse)
       })
 
-      //TEMP - the below useful for when tests break and we want to see what's really going on.
+      //the below useful for when tests break and we want to see what's really going on.
       //Comment out in production to avoid the extra logging, since the caller of checkForUpdateAndTellHubHowItWorkedOut
       //should be responsible for handling uncaught errors anyway.
       /*

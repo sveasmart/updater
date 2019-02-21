@@ -25,10 +25,10 @@ displayRpcPort: 5000
 
 # If we fail to contact the display app, how often should we retry?
 # 0 or blank means never.
-displayResendIntervalSeconds: 5
+displayResendIntervalSeconds: 10
 
 # True if calls to the display should be logged
-logDisplayCalls: true
+logDisplayCalls: false
 
 # Which tab on the display that we use to write stuff
 # (only relevant if displayRpcPort is given)
